@@ -61,18 +61,18 @@ Original instructions(not working!): https://vmw-confluence.broadcom.net/pages/v
 10) Get vCenter info
 	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331  > /tmp/a 2>&1 ; grep -w5  administrator /tmp/a | tail -6
             "vimUsername": "administrator@vsphere.local",
-            "vimPassword": "SBFJWvHc.z-8kd0r",
+            "vimPassword": "SBFJWxxxxxxxxxr",
 11) Jumper Info
 	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331  > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep hostname | head -1
         "hostname": "10.167.66.84",
 	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331  > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep password | tail -1
-        "password": "Ponies!23"
+        "password": "Poxxxxxxxx"
 12) ssh to jumper
-	ssh kubo@10.167.66.84. #Ponies!23
+	ssh kubo@10.167.66.84. #Poxxxxxxxxx
 
 13) Connect to supvisor cluster
 	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
-	# SBFJWvHc.z-8kd0r
+	# SBFJWxxxxxxxr
 
 14) Get storage class
 	kubectl get sc
