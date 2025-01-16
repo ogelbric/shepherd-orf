@@ -82,12 +82,12 @@ Original instructions(not working!): https://vmw-confluence.broadcom.net/pages/v
 15) Create new content lib
 	https://wp-content.vmware.com/v2/latest/lib.json
 
-15) Re-write cluster yaml with new storage class name
+16) Re-write cluster yaml with new storage class name
 	cat cluster1.yaml | sed "s/pacific-gold-storage-policy/tkgs-k8s-obj-policy/g" > cluster11.yaml
 	Fix version to max: v1.29.4---vmware.3-fips.1-tkg.1           v1.29.4+vmware.3-fips.1-tkg.1  
 	Fix namespace 
 
-16) Cluster yaml that worked: 
+17) Cluster yaml that worked: 
 
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
@@ -134,5 +134,22 @@ spec:
           mountPath: "/var/lib/etcd"
           name: etcd
           storageClass: tkgs-k8s-obj-policy
+
+18) Log onto guest cluster 
+	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace1000 --tanzu-kubernetes-cluster-name cluster1 --insecure-skip-tls-verify
+	# SBFJWxxxxxxxxxx
+
+
+19) Test guest cluster
+	alias k=kubectl
+	kubeclt get nodes
+NAME                                     STATUS   ROLES           AGE     VERSION
+cluster1-6vj88-lksn5                     Ready    control-plane   19m     v1.29.4+vmware.3-fips.1
+cluster1-node-pool-1-tz745-cz8n9-bndgg   Ready    <none>          5m1s    v1.29.4+vmware.3-fips.1
+cluster1-node-pool-1-tz745-cz8n9-k45x5   Ready    <none>          3m54s   v1.29.4+vmware.3-fips.1
+cluster1-node-pool-1-tz745-cz8n9-lvq8n   Ready    <none>          3m31s   v1.29.4+vmware.3-fips.1
+cluster1-node-pool-1-tz745-cz8n9-qtgk9   Ready    <none>          3m18s   v1.29.4+vmware.3-fips.1
+cluster1-node-pool-1-tz745-cz8n9-tnfqv   Ready    <none>          5m12s   v1.29.4+vmware.3-fips.1
+
 
 ```
