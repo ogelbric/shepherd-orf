@@ -151,5 +151,41 @@ cluster1-node-pool-1-tz745-cz8n9-lvq8n   Ready    <none>          3m31s   v1.29.
 cluster1-node-pool-1-tz745-cz8n9-qtgk9   Ready    <none>          3m18s   v1.29.4+vmware.3-fips.1
 cluster1-node-pool-1-tz745-cz8n9-tnfqv   Ready    <none>          5m12s   v1.29.4+vmware.3-fips.1
 
+20) TP-SM Install steps
+
+Internal Doc: https://vmw-confluence.broadcom.net/pages/viewpage.action?pageId=2122072341
+Official Doc: https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-platform/10-0/tnz-platform/tp-sm-install-install-tp-sm.html
+
+21) Download 45 GB
+	Favorite web browser log on with your Broadcom.net ID
+	Accept the little check box
+	https://support.broadcom.com/group/ecx/productdownloads?subfamily=Tanzu%20Platform%20Self%20Managed
+22) moved and extract
+	Move from Mac to jumper server: scp tahnz-self-managed-10.0.0.tar.gz kubo@10.167.66.84:/orf/.   #(2hours 47 min) good thing the jumper has a 85 GB drive
+	mkdir tanzu-installer 
+	tar -xzvf <INSTALLER-BUNDLE-FILENAME>.tar.gz -c ./tanzu-installer
+
+23) Install some stuff... 
+	kubectl config use-context namespace1000
+	kubectl get secret -n namespace1000
+	kubectl get secret cluster1-kubeconfig -n namespace1000 -o json | jq -r '.data["value"] | @base64d' > wrk-kc 
+	export KUBECONFIG=wrk-kc
+
+	mkdir -p build/
+	curl -kL https://carvel.dev/install.sh | K14SIO_INSTALL_BIN_DIR=build bash
+
+	sudo apt install -y ca-certificates curl gpg
+	sudo mkdir -p /etc/apt/keyrings
+	curl -fsSL https://storage.googleapis.com/tanzu-cli-installer-packages/keys/TANZU-PACKAGING-GPG-RSA-KEY.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/tanzu-archive-keyring.gpg
+	echo "deb [signed-by=/etc/apt/keyrings/tanzu-archive-keyring.gpg] https://storage.googleapis.com/tanzu-cli-installer-packages/apt tanzu-cli-jessie main" | sudo tee /etc/apt/sources.list.d/tanzu.list
+	sudo apt update
+	sudo apt install -y tanzu-cli
+
+	wget https://github.com/vmware-tanzu/crash-diagnostics/releases/download/v0.3.10/crashd_0.3.10_linux_amd64.tar.gz
+	mkdir -p crashd_0.3.10_linux_amd64
+	tar -xvf crashd_0.3.10_linux_amd64.tar.gz -C crashd_0.3.10_linux_amd64
+	sudo mv crashd_0.3.10_linux_amd64/crashd  /usr/local/bin/crashd
+
+
 
 ```
