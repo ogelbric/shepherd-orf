@@ -169,10 +169,31 @@ Official Doc: https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-pl
 	Accept the little check box
 	https://support.broadcom.com/group/ecx/productdownloads?subfamily=Tanzu%20Platform%20Self%20Managed
 
-22) moved and extract
-	Move from Mac to jumper server: scp tahnz-self-managed-10.0.0.tar.gz kubo@10.167.66.84:/orf/.   #(2hours 47 min) good thing the jumper has a 85 GB drive
-	mkdir tanzu-installer 
-	tar -xzvf <INSTALLER-BUNDLE-FILENAME>.tar.gz -c ./tanzu-installer
+22) Moved and Extract
+	#
+	# jump host needs another 150 GB disk to do all of this
+	# vCenter add second disk to server 
+	#
+	#disk device info
+	lsblk
+	# looks like sdb      8:16   0  150G  0 disk  is my new disk 
+	sudo parted /dev/sdb
+	mklabel gpt
+	Yes
+	print
+	mkpart primary 0 145GB
+	Ignore
+	quit
+	sudo mkfs.ext4 /dev/sdb1
+	sudo mkdir /bigdisk
+	sudo mount /dev/sdb1 /bigdisk
+	mkdir /bigdisk/tanzu-installer
+	cd /home/kubo/orf
+	#Move from Mac(Internal jump server) to jumper server: 
+	#
+	scp tanzu-self-managed-10.0.0.tar.gz kubo@10.167.66.84:/home/kubo/orf/.   #(2hours 47 min) good thing the jumper has a 85 GB drive
+	 
+	sudo tar -xzvf tanzu-self-managed-10.0.0.tar.gz  -C /bigdisk/tanzu-installer
 
 23) Install some stuff... 
 	cd orf
@@ -216,8 +237,48 @@ Official Doc: https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-pl
 | af6bb058-b2fa-4d70-bdd1-16f5f7a5f5ff | locked | 2 days ago   | in 4 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by User001 |
 +--------------------------------------+--------+--------------+------------+-------------+--------------------+-----------------+
 
-	sheepctl lock extend ffaa1e86-3a00-4c8a-81e0-862aee201331 -t 3 -n Tanzu-Sales #does not work waiting for better command 
+	sheepctl lock extend ffaa1e86-3a00-4c8a-81e0-862aee201331 -t 3d -n Tanzu-Sales 
 
 
+25) Cert Manager
+	Log onto guest cluster step 18
+	alias k=kubectl
+	#
+	k config get-contexts
+	#
+CURRENT   NAME                   CLUSTER       AUTHINFO                                      NAMESPACE
+          192.168.0.2            192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   
+*         cluster1               192.168.0.3   wcp:192.168.0.3:administrator@vsphere.local   
+          namespace1000          192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   namespace1000
+          orfnamespace           192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   orfnamespace
+          svc-tkg-domain-c9      192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   svc-tkg-domain-c9
+          svc-velero-domain-c9   192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   svc-velero-domain-c9
+          testns                 192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   testns
+
+	kubectl create namespace cert-manager # in my case the namespace was there but noting in it
+	tanzu plugin install package
+	tanzu package install cert-manager -p cert-manager.tanzu.vmware.com -n cert-manager -v 1.7.2+vmware.3-tkg.3 
+	# if there is any error in this step, you might need to install package repo 
+	# first https://techdocs.broadcom.com/us/en/vmware-tanzu/cli/tanzu-packages/latest/tnz-packages/prep.html#:~:text=Add%20the%20Package%20Repository%20to%20the%20Cluster
+	#
+	# yes I have error in above step...
+	#
+	tanzu package repository list -A
+	#
+	# repo list is empty
+	#
+	cd buid
+	./imgpkg tag list -i projects.registry.vmware.com/tkg/packages/standard/repo
+imgpkg: Error: Error while preparing a transport to talk with the registry:
+  Unable to create round tripper:
+    Get "https://projects.registry.vmware.com/v2/": dial tcp: lookup projects.registry.vmware.com: i/o timeout
+kubo@UGN5JmN7F92hA:~/orf/build$ 
+
+
+
+
+	tanzu package installed list -n cert-manager
+
+	kubectl -n cert-manager get all
 
 ```
