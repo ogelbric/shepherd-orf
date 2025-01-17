@@ -8,6 +8,7 @@ Original instructions(not working!): https://vmw-confluence.broadcom.net/pages/v
 	Result:
 		Your identification has been saved in /Users/ogelbrich/.ssh/id_ed25519
 		Your public key has been saved in /Users/ogelbrich/.ssh/id_ed25519.pub
+
 2) Go to internal Broadcom GitHub
 	https://github.gwd.broadcom.net
 	Upper right hand corner select down arrow and then settings
@@ -16,16 +17,21 @@ Original instructions(not working!): https://vmw-confluence.broadcom.net/pages/v
 	Select title: shepardkey
 	cat /Users/ogelbrich/.ssh/id_ed25519.pub
 	Paste cat result into window (something like this: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ9yTKqUUNA7OPKbX+jaesFRv0uXXXXXXXXXqdTHnAuI)
+
 3) Add the key to ssh
 	ssh-add
 	ssh-add -l #will show you the key added 
+
 4) Point to the internal GitHub
 	brew tap vmware/internal git@github.gwd.broadcom.net:TNZ/shepherd-homebrew-internal.git
+
 5) Install stuff
 	brew install sheepctl
 	brew install shepherd
+
 6) Set the target
 	sheepctl target set -u https://epc-shepherd.lvn.broadcom.net -n tpsm
+
 7) Run Sample Command
 	sheepctl pool list
 
@@ -57,18 +63,21 @@ Original instructions(not working!): https://vmw-confluence.broadcom.net/pages/v
 9) Get the lock information
 	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331
 
-
 10) Get vCenter info
 	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331  > /tmp/a 2>&1 ; grep -w5  administrator /tmp/a | tail -6
             "vimUsername": "administrator@vsphere.local",
             "vimPassword": "SBFJWxxxxxxxxxr",
+
 11) Jumper Info
 	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331  > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep hostname | head -1
         "hostname": "10.167.66.84",
 	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331  > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep password | tail -1
         "password": "Poxxxxxxxx"
+
 12) ssh to jumper
-	ssh kubo@10.167.66.84. #Poxxxxxxxxx
+	ssh kubo@10.167.66.84 #Ponies!23
+	mkdir orf
+	cd orf
 
 13) Connect to supvisor cluster
 	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
@@ -139,7 +148,6 @@ spec:
 	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace1000 --tanzu-kubernetes-cluster-name cluster1 --insecure-skip-tls-verify
 	# SBFJWxxxxxxxxxx
 
-
 19) Test guest cluster
 	alias k=kubectl
 	kubeclt get nodes
@@ -160,31 +168,55 @@ Official Doc: https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-pl
 	Favorite web browser log on with your Broadcom.net ID
 	Accept the little check box
 	https://support.broadcom.com/group/ecx/productdownloads?subfamily=Tanzu%20Platform%20Self%20Managed
+
 22) moved and extract
 	Move from Mac to jumper server: scp tahnz-self-managed-10.0.0.tar.gz kubo@10.167.66.84:/orf/.   #(2hours 47 min) good thing the jumper has a 85 GB drive
 	mkdir tanzu-installer 
 	tar -xzvf <INSTALLER-BUNDLE-FILENAME>.tar.gz -c ./tanzu-installer
 
 23) Install some stuff... 
+	cd orf
+	#
+	#Fetch worker cluster kubeconfig and export it
+	#
 	kubectl config use-context namespace1000
 	kubectl get secret -n namespace1000
 	kubectl get secret cluster1-kubeconfig -n namespace1000 -o json | jq -r '.data["value"] | @base64d' > wrk-kc 
 	export KUBECONFIG=wrk-kc
-
+	#
+	#Carvel tools
+	#
 	mkdir -p build/
 	curl -kL https://carvel.dev/install.sh | K14SIO_INSTALL_BIN_DIR=build bash
-
+	#
+	#Tanzu-cli
+	#
 	sudo apt install -y ca-certificates curl gpg
 	sudo mkdir -p /etc/apt/keyrings
 	curl -fsSL https://storage.googleapis.com/tanzu-cli-installer-packages/keys/TANZU-PACKAGING-GPG-RSA-KEY.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/tanzu-archive-keyring.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/tanzu-archive-keyring.gpg] https://storage.googleapis.com/tanzu-cli-installer-packages/apt tanzu-cli-jessie main" | sudo tee /etc/apt/sources.list.d/tanzu.list
 	sudo apt update
 	sudo apt install -y tanzu-cli
-
+	#
+	#Crashd
+	#
 	wget https://github.com/vmware-tanzu/crash-diagnostics/releases/download/v0.3.10/crashd_0.3.10_linux_amd64.tar.gz
 	mkdir -p crashd_0.3.10_linux_amd64
 	tar -xvf crashd_0.3.10_linux_amd64.tar.gz -C crashd_0.3.10_linux_amd64
 	sudo mv crashd_0.3.10_linux_amd64/crashd  /usr/local/bin/crashd
+
+
+24) Making sure the lock is not going away - trying to extend the lease
+
+	sheepctl lock list -n Tanzu-Sales                                               
++--------------------------------------+--------+--------------+------------+-------------+--------------------+-----------------+
+|                  ID                  | STATUS |   CREATED    | EXPIRATION |  NAMESPACE  |        POOL        |   DESCRIPTION   |
++--------------------------------------+--------+--------------+------------+-------------+--------------------+-----------------+
+| ffaa1e86-3a00-4c8a-81e0-862aee201331 | locked | 19 hours ago | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL |
+| af6bb058-b2fa-4d70-bdd1-16f5f7a5f5ff | locked | 2 days ago   | in 4 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by User001 |
++--------------------------------------+--------+--------------+------------+-------------+--------------------+-----------------+
+
+	sheepctl lock extend ffaa1e86-3a00-4c8a-81e0-862aee201331 -t 3 -n Tanzu-Sales #does not work waiting for better command 
 
 
 
