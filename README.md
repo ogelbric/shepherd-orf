@@ -75,7 +75,7 @@ Original instructions(not working!): https://vmw-confluence.broadcom.net/pages/v
         "password": "Poxxxxxxxx"
 
 12) ssh to jumper
-	ssh kubo@10.167.66.84 #Ponies!23
+	ssh kubo@10.167.66.84 #Poxxxxxx
 	mkdir orf
 	cd orf
 
