@@ -240,24 +240,21 @@ Official Doc: https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-pl
 	sheepctl lock extend ffaa1e86-3a00-4c8a-81e0-862aee201331 -t 3d -n Tanzu-Sales 
 
 
-25) Cert Manager
+26) Cert Manager
 	Log onto guest cluster step 18
 	alias k=kubectl
 	#
 	k config get-contexts
 	#
-CURRENT   NAME                   CLUSTER       AUTHINFO                                      NAMESPACE
-          192.168.0.2            192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   
-*         cluster1               192.168.0.3   wcp:192.168.0.3:administrator@vsphere.local   
-          namespace1000          192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   namespace1000
-          orfnamespace           192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   orfnamespace
-          svc-tkg-domain-c9      192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   svc-tkg-domain-c9
-          svc-velero-domain-c9   192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   svc-velero-domain-c9
-          testns                 192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   testns
+
+	CURRENT   NAME                            CLUSTER       AUTHINFO            NAMESPACE
+	*         orfcluster1-admin@orfcluster1   orfcluster1   orfcluster1-admin   
+
 
 	kubectl create namespace cert-manager # in my case the namespace was there but noting in it
 	tanzu plugin install package
 	tanzu package install cert-manager -p cert-manager.tanzu.vmware.com -n cert-manager -v 1.7.2+vmware.3-tkg.3 
+	#
 	# if there is any error in this step, you might need to install package repo 
 	# first https://techdocs.broadcom.com/us/en/vmware-tanzu/cli/tanzu-packages/latest/tnz-packages/prep.html#:~:text=Add%20the%20Package%20Repository%20to%20the%20Cluster
 	#
@@ -267,18 +264,152 @@ CURRENT   NAME                   CLUSTER       AUTHINFO                         
 	#
 	# repo list is empty
 	#
-	cd buid
+	#
+	# make sure you can nslookup projects.registry.vmware.com and it resolves
+	# if not then go back to DNS setup step
+	#
+	cd build
 	./imgpkg tag list -i projects.registry.vmware.com/tkg/packages/standard/repo
-imgpkg: Error: Error while preparing a transport to talk with the registry:
-  Unable to create round tripper:
-    Get "https://projects.registry.vmware.com/v2/": dial tcp: lookup projects.registry.vmware.com: i/o timeout
-kubo@UGN5JmN7F92hA:~/orf/build$ 
+	#
+	# Create a repo file (Add the Package Repository to the Cluster)
+	#
+	cat packagerepo.yaml
 
+apiVersion: packaging.carvel.dev/v1alpha1
+kind: PackageRepository
+metadata:
+  name: tanzu-standard
+  namespace: tkg-system
+spec:
+  fetch:
+    imgpkgBundle:
+      image: projects.registry.vmware.com/tkg/packages/standard/repo:v2.2.0_update.2
 
+	#
+	# make sure you are still logged onto the guys cluster
+	#
+	k config get-contexts
+	#
+	# orfcluster1
+	#
+	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace1000 --tanzu-kubernetes-cluster-name orfcluster1 --insecure-skip-tls-verify
+	#
+	# SBFJWvHc.z-8kd0r
 
+	# Apply the repo info
+	kubectl apply -f packagerepo.yaml
 
+	#check if there is a repo and it is STATUS: Reconcile succeeded 
+	tanzu package repository list -A
+	kubectl get packagerepositories -A
+
+	#
+	# list the available packages
+	#
+	kubectl -n tkg-system get packages
+
+	#
+	# Try to install cert-manager
+	#
+	tanzu package install cert-manager -p cert-manager.tanzu.vmware.com -n cert-manager -v 1.7.2+vmware.3-tkg.3
+	
 	tanzu package installed list -n cert-manager
 
 	kubectl -n cert-manager get all
+
+	#
+	# looks like cert manager is in reconcile status...
+	# events reveal that there is an issue
+	k get events  -n cert-manager
+
+	11m         Warning   FailedCreate        replicaset/cert-manager-webhook-9ddb9cd4c       Error creating: pods "cert-manager-webhook-9ddb9cd4c-l4mkc" is forbidden: violates PodSecurity "restricted:latest": allowPrivilegeEscalation != false (container "cert-manager" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container "cert-manager" must set securityContext.capabilities.drop=["ALL"]), seccompProfile (pod or container "cert-manager" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost")
+
+	#
+	# patch time
+	#
+	k get deployments -n cert-manager
+	
+	NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+	cert-manager              0/1     0            0           27m
+	cert-manager-cainjector   0/1     0            0           27m
+	cert-manager-webhook      0/1     0            0           27m
+
+
+	# time to look at the yaml files
+
+	k get  deployment -n cert-manager cert-manager  -o yaml > cert-manager 
+	k get  deployment -n cert-manager cert-manager-cainjector  -o yaml > cert-manager-cainjector
+	k get  deployment -n cert-manager cert-manager-webhook  -o yaml > cert-manager-webhook
+	
+	#
+	# attention there is already a security context section which the new instructions do not go under
+	# the new instruction go under the port: or name: section
+	#
+
+	#
+	# edit with below example
+	#
+	k edit deployment -n cert-manager cert-manager
+	k edit deployment -n cert-manager cert-manager-cainjector
+	k edit deployment -n cert-manager cert-manager-webhook
+
+
+   spec:
+      containers:
+      - args:
+        - --v=2
+        - --cluster-resource-namespace=$(POD_NAMESPACE)
+        - --leader-election-namespace=kube-system
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        image: projects.registry.vmware.com/tkg/cert-manager-controller@sha256:c5ff152d8391ca52ef6d6563001d41543860b687ad294fea38f28a7906920b31
+        imagePullPolicy: IfNotPresent
+        name: cert-manager
+        ports:
+        - containerPort: 9402
+          protocol: TCP
+        resources: {}
+        #
+        # new section here (***START***)
+        #
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        #
+        # new section here (***END***)
+        #
+        terminationMessagePath: /dev/termination-log
+
+	#
+	# check the deployments
+	#
+
+	kubectl get deployment -n cert-manager
+
+	NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+	cert-manager              1/1     0            1           27h
+	cert-manager-cainjector   1/1     0            1           27h
+	cert-manager-webhook      1/1     1            1           27h
+
+	k get pods -n cert-manager
+
+	NAME                                       READY   STATUS    RESTARTS   AGE
+	cert-manager-67dd8d5578-6qxzx              1/1     Running   0          56m
+	cert-manager-cainjector-6cd4cd948d-qf7cs   1/1     Running   0          32m
+	cert-manager-webhook-569f75495-5hwsq       1/1     Running   0          31m
+
+
+	#Or you can use public cert manager from https://cert-manager.io/docs/installation/#default-static-install
+
+
 
 ```
