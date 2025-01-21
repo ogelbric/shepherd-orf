@@ -568,7 +568,404 @@ EOF
 
 
 
-27) Move Images
+
+27) Storage class update
+
+
+	# Check Storage class
+	#
+	kubectl get sc
+
+	NAME                              PROVISIONER              RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+	tkgs-k8s-obj-policy (default)     csi.vsphere.vmware.com   Delete          Immediate              true                   3d19h
+	tkgs-k8s-obj-policy-latebinding   csi.vsphere.vmware.com   Delete          WaitForFirstConsumer   true                   3d19h
+
+	#
+	# make sure below yaml has the correct (tkgs-k8s-obj-policy) Storage class
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  labels:
+    isSyncedFromSupervisor: "false"
+  name: postgresql-storage-class
+parameters:
+  svStorageClass: tkgs-k8s-obj-policy
+provisioner: csi.vsphere.vmware.com
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+---
+#Open Search
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  labels:
+    isSyncedFromSupervisor: "false"
+  name: opensearch-storage-class
+parameters:
+  svStorageClass: tkgs-k8s-obj-policy
+provisioner: csi.vsphere.vmware.com
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+---
+#Kafka
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  labels:
+    isSyncedFromSupervisor: "false"
+  name: kafka-storage-class
+parameters:
+  svStorageClass: tkgs-k8s-obj-policy
+provisioner: csi.vsphere.vmware.com
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+---
+#Zookeeper
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  labels:
+    isSyncedFromSupervisor: "false"
+  name: zk-storage-class
+parameters:
+  svStorageClass: tkgs-k8s-obj-policy
+provisioner: csi.vsphere.vmware.com
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+---
+#Redis
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  labels:
+    isSyncedFromSupervisor: "false"
+  name: redis-storage-class
+parameters:
+  svStorageClass: tkgs-k8s-obj-policy
+provisioner: csi.vsphere.vmware.com
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+---
+#Prometheus
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  labels:
+    isSyncedFromSupervisor: "false"
+  name: prometheus-storage-class
+parameters:
+  svStorageClass: tkgs-k8s-obj-policy
+provisioner: csi.vsphere.vmware.com
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+  
+---
+#Prometheus-tmc (to be deprecated in later release)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  labels:
+    isSyncedFromSupervisor: "false"
+  name: tmc-prometheus-storage-class
+parameters:
+  svStorageClass: tkgs-k8s-obj-policy
+provisioner: csi.vsphere.vmware.com
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+ 
+---
+#SeaweedFS
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  labels:
+    isSyncedFromSupervisor: "false"
+  name: seaweedfs-storage-class
+parameters:
+  svStorageClass: tkgs-k8s-obj-policy
+provisioner: csi.vsphere.vmware.com
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+ 
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  labels:
+    isSyncedFromSupervisor: "false"
+  name: clickhouse-storage-class
+parameters:
+  svStorageClass: tkgs-k8s-obj-policy
+provisioner: csi.vsphere.vmware.com
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+
+
+	kubectl apply -f ./storage.yaml
+
+	# storageclass.storage.k8s.io/postgresql-storage-class created
+	# storageclass.storage.k8s.io/opensearch-storage-class created
+	#storageclass.storage.k8s.io/kafka-storage-class created
+	# storageclass.storage.k8s.io/zk-storage-class created
+	# storageclass.storage.k8s.io/redis-storage-class created
+	# storageclass.storage.k8s.io/prometheus-storage-class created
+	# storageclass.storage.k8s.io/tmc-prometheus-storage-class created
+	# storageclass.storage.k8s.io/seaweedfs-storage-class created
+	# storageclass.storage.k8s.io/clickhouse-storage-class created
+
+	kubectl get sc
+	NAME                              PROVISIONER              RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+	clickhouse-storage-class          csi.vsphere.vmware.com   Retain          Immediate              true                   40s
+	kafka-storage-class               csi.vsphere.vmware.com   Retain          Immediate              true                   40s
+	opensearch-storage-class          csi.vsphere.vmware.com   Retain          Immediate              true                   40s
+	postgresql-storage-class          csi.vsphere.vmware.com   Retain          Immediate              true                   40s
+	prometheus-storage-class          csi.vsphere.vmware.com   Retain          Immediate              true                   40s
+	redis-storage-class               csi.vsphere.vmware.com   Retain          Immediate              true                   40s
+	seaweedfs-storage-class           csi.vsphere.vmware.com   Retain          Immediate              true                   40s
+	tkgs-k8s-obj-policy (default)     csi.vsphere.vmware.com   Delete          Immediate              true                   3d19h
+	tkgs-k8s-obj-policy-latebinding   csi.vsphere.vmware.com   Delete          WaitForFirstConsumer   true                   3d19h
+	tmc-prometheus-storage-class      csi.vsphere.vmware.com   Retain          Immediate              true                   40s
+	zk-storage-class                  csi.vsphere.vmware.com   Retain          Immediate              true                   40s
+
+
+28) Install verification
+
+	#
+	# push image to docker
+	# docker login <path-to-local-repo>
+	# imgpkg copy --tar tanzusm-<VERSION>.tar --to-repo=<path-to-local-repo>
+
+	export TANZU_SM_VERSION=10.0.0-oct-2024-rc.533-vc0bb325
+	export OS=$(uname | tr '[:upper:]' '[:lower:]')
+	export ARCH=$(if [[ $(uname -m) = "x86_64" ]]; then  echo "amd64"; else echo "arm64"; fi)
+	export ARTIFACTORY_USER=<BROADCOM_ARTIFACTORY_USER> // could use a svc user or individual
+	export ARTIFACTORY_API_TOKEN=<BROADCOM_ARTIFACTORY_API_TOKEN> // could use a svc user or individual
+	export DOCKER_REGISTRY=tis-tanzuhub-sm-docker-dev-local.usw1.packages.broadcom.com
+
+
+	cd /home/kubo/orf
+	export KUBECONFIG=''
+
+	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
+	# SBFJWvHc.z-8kd0r
+
+	#
+	# orfcluster1 kubeconfig
+	#
+	kubectl config use-context namespace1000
+	kubectl get secret orfcluster1-kubeconfig -n namespace1000 -o json | jq -r '.data["value"] | @base64d' > orfwrk-kc 
+	export KUBECONFIG=orfwrk-kc
+
+	kubectl config get-contexts
+	CURRENT   NAME                            CLUSTER       AUTHINFO            NAMESPACE
+	*         orfcluster1-admin@orfcluster1   orfcluster1   orfcluster1-admin   
+
+
+	cd /bigdisk/tanzu-installer
+	#
+	# save off the original config file
+	#
+	cp config.yaml /home/kubo/orf/config.yaml.orig
+	
+
+#
+# Needs work below
+#
+
+cat <<'EOF' > /home/kubo/orf/config.yaml
+# @copyright Copyright Broadcom. All Rights Reserved.
+# The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+# @license For licensing, see LICENSE.md.
+# Installation flavor. Use "full" to install everything in Tanzu Platform which includes essentials services along with K8s Ops, App Engine and build services.
+# Use "essentials" for installing essentials services of Tanzu Platform.
+flavor: full
+# Installation profile to use.  `evaluation` profile uses minimum
+# resources, disables autoscaling, and only uses a single replica.
+# `foundation` profile uses standard resource and autoscaling
+# configuration.
+profile: foundation
+# Version of Tanzu Platform Self Managed to install.  This should not normally
+# be changed.
+version: '10.0.0-4706-v8b7d709'
+# Kubernetes Ingress settings.
+ingress:
+  # Static IP address that needs to be assigned to contour load balancer
+  # The host associated with this IP will be used for accessing UI and other ingress objects.
+  # This is optional and If not provided, random IP address from available IP pool will be assigned
+  # to contour load balancer.
+  loadBalancerIP: "192.168.116.206"
+  # DNS name that can reach the system.  If unset, and
+  # `controller` is enabled, then get the external name from
+  # the installed ingress controller.
+  host: "tanzu.platform.io"
+  # TLS certificate configuration for the specified `host`
+  # If unset, the cluster will generate a self-signed certificate
+  # on its own.
+  tls:
+    certificate: ""
+    privateKey: ""
+#Deplyment settings
+deployment:
+  airGapped: false
+#Daedalus Settings
+trivy:
+  # Optional OCI repository to retrieve trivy-db from. Its url can be external or internal for airgapped deployment (default "ghcr.io/aquasecurity/trivy-db")
+  # This repositroy should be periodically synced from ghcr.io/aquasecurity/trivy-db to get latest vulnerability for airgapped deployment.
+  dbRepository: ""
+  # When using SSL/TLS, Trivy can be configured to allow insecure connections to a container registry if there is no valid certificate available
+  # Set allowInsecureConnections to true to allow insecure server connections; false, otherwise
+  allowInsecureConnections: false
+# Infra components
+postgresql:
+  storageClass: "postgresql-storage-class"
+clickhouse:
+  storageClass: "clickhouse-storage-class"
+redis:
+  storageClass: "redis-storage-class"
+opensearch:
+  storageClass: "opensearch-storage-class"
+seaweedfsS3:
+  storageClass: "seaweedfs-storage-class"
+prometheus:
+  storageClass: "prometheus-storage-class"
+  tmcStorageClass: "tmc-prometheus-storage-class"
+kafka:
+  storageClass: "kafka-storage-class"
+zookeeper:
+  storageClass: "zk-storage-class"
+# Image registry settings used as service parameters. values will be automatically generated.
+imageRegistry:
+  server: ""
+  username: ""
+  password: ""
+#Custom Registry certificate, used in Kapp controller. Certificate string should be provided using string literal style (|) to perserve newline characters.
+CustomRegistryCertificate: ""
+#Version control systems (gitlab or github) certificates. Certificate string should be provided using string literal style (|) to perserve newline characters.
+versionControlSystemCertificate: ""
+#Tanzu platform login details
+login:
+  # login operation timeout in seconds, default 60 seconds
+  timeout: 60
+  # Default in built user details for login into the Tanzu Platform
+  defaultUsers:
+    #Tanzu Platform Admin Details, username: tanzu_platform_admin
+    admin:
+      #Tanzu Platform Admin  Password, Random password will be generated if empty value provided
+      #Note that this password cannot be changed later, its one time set ( both system generated and user provided one)
+      password: "admin123"
+      ##### --------------------------------*************************-----------------------------------------######
+      ##### --------------------------------*************************-----------------------------------------######
+      ##### ------ You can provide both oauth provider and ldap for the users to login into TP or any one ----######
+      ##### ------ of them but at-least one need to be provided. Please remove/comment out the oauth ---------######
+      ##### ------ providers section if you are not using oauth and similarly remove/comment out the ---------######
+      ##### ------ out the ldap section if you are not using ldap. -------------------------------------------######
+      ##### --------------------------------*************************-----------------------------------------######
+      ##### --------------------------------*************************-----------------------------------------######
+      #OIDC/Oauth servers details, the config supports multiple oauth providers but the recommendation is 1
+oauthProviders:
+#    #Unique name for this oauth server configuration
+    - name: "okta.test"
+#      #Certificate of the oauth server if needs to connect over ssl
+#      #Remove this field if it needs to connect over plain http protocol
+#      certificate: ""
+#      #OpenId configuration url of the oauth provider i.e url of .well-known/openid-configuration api endpoint
+      configUrl: "https://dev-70846880.okta.com/.well-known/openid-configuration"
+#      #Issuer url of the oauth Provider
+      issuerUrl: "https://dev-70846880.okta.com"
+#      #Scopes list which are needed to fetch the user information(email, groups) from oauth provider, openId is must
+      scopes: ["openid", "email", "groups"]
+#      #Link name to be shown for this oauth provider in TP login page
+      loginPageLinkText: "Login with Dev Okta"
+#      #Client Id to connect to oauth Provider
+      clientId: "0oaggqbiqdlnTtfFY5d7"
+#      #Client secret to connect to oauth Provider
+      secret: "UMdEVboJTSfHAQEbuIlj1j2zticsxBRiEuRLYsfJk6dbeR9Nh47qH_7E_7q7MVT1"
+#      #Mapping the fields of the oauth token to the user info object which are needed in TP
+      attributeMappings:
+#        #Field to be considered for username of the logged-in user
+        username: "email"
+#        #Field to be considered for groups of the logged-in user
+        groups: "groups"
+#  #Ldap server details for login into the Tanzu Platform;
+#  #please uncomment the ldap section if you are planning to use ldap for the login and
+#  #comment the oauth provider section if you are not using oauth providers for the login
+#  ldap:
+#    #Ldap server url
+#    url: ""
+#    #Certificate of the ldap server if it needs to connect over ssl(ldaps), optional field.
+#    #Remove this field if it needs to connect over plain ldap protocol
+#    certificate: ""
+#    #Ldap server credential details
+#    credentials:
+#      #DN record for the ldap credential to search the directory, example: cn=admin,dc=broadcom,dc=com
+#      userDN: ""
+#      #password of the above DN
+#      password: ""
+#    #LDAP configuration to fetch user for the TP login operation
+#    users:
+#      #Base DN where the users need to be searched, example: dc=broadcom,dc=com
+#      baseDN: ""
+#      #Search filter to be used to get the user record who is trying to login into TP, example cn={0}.
+#      #Here {0} is used to annotate where the username will be inserted
+#      #This value will be clubbed with base DN to fetch the user record, the query will become cn=testuser,dc=broadcom,dc=com"
+#      searchFilter: ""
+#      #Attribute name that contains the user's email address
+#      mailAttribute: "mail"
+#    #LDAP configuration to fetch groups of the user
+#    groups:
+#      #Base DN where the groups need to be searched, example: dc=broadcom,dc=com
+#      baseDN: ""
+#      #Similar to user filter, the user group memberships are retrieved based on this filter, example: member={0}
+#      searchFilter: ""
+#      #Number of depth levels to search for nested groups, set this value to 1 to disable nested groups search
+#      searchDepth: 10
+#      #Attribute which holds the name of the group in the LDAP record
+#      groupNameAttribute: cn
+# Please provide the default organization details in the configuration settings below.
+organization:
+  #  Specifies the name of the organization.
+  name: ""
+# TO BE REMOVED before the final customer release
+#! The default configuration for `config.yaml` includes exclusions for the August release
+#! to facilitate selective deployment, optimizing for specific testing and development needs.
+#!
+#! For the September release, all components need to be deployed to ensure comprehensive testing
+#! and functionality validation. To facilitate this, a specific overlay for the June release
+#! is applied when the `make June_release` command is executed. This overlay removes any
+#! exclusions set in the May configuration, allowing for a full deployment of all packages
+#! and components.
+internal:
+  excludedComponents:
+EOF
+
+
+
+
+
+29) Verify
+	cd /bigdisk/tanzu-installer/cli_bundle/linux/amd64
+
+	./tanzu-sm-installer verify -f config.yaml -u "${ARTIFACTORY_USER}:${ARTIFACTORY_API_TOKEN}" -r ${DOCKER_REGISTRY}/hub-self-managed/${TANZU_SM_VERSION}/repo --install-version ${TANZU_SM_VERSION} --kubeconfig ${KUBECONFIG}
+
+
+30) Install
+	./tanzu-sm-installer install -f config.yaml -u "${ARTIFACTORY_USER}:${ARTIFACTORY_API_TOKEN}" -r ${DOCKER_REGISTRY}/hub-self-managed/${TANZU_SM_VERSION}/repo --install-version ${TANZU_SM_VERSION} --kubeconfig ${KUBECONFIG}
+
+
+
+
+
+
 
 
 
