@@ -244,7 +244,7 @@ Official Doc: https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-pl
 	Log onto guest cluster step 18
 	alias k=kubectl
 	#
-	k config get-contexts
+	kubectl config get-contexts
 	#
 
 	CURRENT   NAME                            CLUSTER       AUTHINFO            NAMESPACE
@@ -327,7 +327,7 @@ spec:
 	#
 	# patch time
 	#
-	k get deployments -n cert-manager
+	kubectl get deployments -n cert-manager
 	
 	NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
 	cert-manager              0/1     0            0           27m
@@ -337,21 +337,28 @@ spec:
 
 	# time to look at the yaml files
 
-	k get  deployment -n cert-manager cert-manager  -o yaml > cert-manager 
-	k get  deployment -n cert-manager cert-manager-cainjector  -o yaml > cert-manager-cainjector
-	k get  deployment -n cert-manager cert-manager-webhook  -o yaml > cert-manager-webhook
+	kubectl get  deployment -n cert-manager cert-manager  -o yaml > cert-manager 
+	kubectl get  deployment -n cert-manager cert-manager-cainjector  -o yaml > cert-manager-cainjector
+	kubectl get  deployment -n cert-manager cert-manager-webhook  -o yaml > cert-manager-webhook
 	
 	#
-	# attention there is already a security context section which the new instructions do not go under
-	# the new instruction go under the port: or name: section
+	# Attention there is already a security context section 
+	# The new instructions do not go under that existing security section!
+	# The new instruction go under the port: or name: section
 	#
 
 	#
-	# edit with below example
+	# Option (A)
+	# 
+	# Edit in place
 	#
-	k edit deployment -n cert-manager cert-manager
-	k edit deployment -n cert-manager cert-manager-cainjector
-	k edit deployment -n cert-manager cert-manager-webhook
+
+	#
+	# (A) edit online with below example
+	#
+	kubectl edit deployment -n cert-manager cert-manager
+	kubectl edit deployment -n cert-manager cert-manager-cainjector
+	kubectl edit deployment -n cert-manager cert-manager-webhook
 
 
    spec:
@@ -374,7 +381,7 @@ spec:
           protocol: TCP
         resources: {}
         #
-        # new section here (***START***)
+        # new section here (*********************************START********************************************)
         #
         securityContext:
           allowPrivilegeEscalation: false
@@ -385,7 +392,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         #
-        # new section here (***END***)
+        # new section here (*********************************END********************************************))
         #
         terminationMessagePath: /dev/termination-log
 
@@ -400,7 +407,7 @@ spec:
 	cert-manager-cainjector   1/1     0            1           27h
 	cert-manager-webhook      1/1     1            1           27h
 
-	k get pods -n cert-manager
+	kubectl get pods -n cert-manager
 
 	NAME                                       READY   STATUS    RESTARTS   AGE
 	cert-manager-67dd8d5578-6qxzx              1/1     Running   0          56m
@@ -409,6 +416,160 @@ spec:
 
 
 	#Or you can use public cert manager from https://cert-manager.io/docs/installation/#default-static-install
+
+	#
+	# Option (B)
+	#
+	# A more programatic way of applying the patch
+	#
+
+	#
+	# cert-manager
+	#
+
+read -r -d '' PATCH1 <<'EOF'
+{
+   "spec": {
+      "template": {
+         "spec": {
+        "containers": [
+          {
+            "terminationMessagePath": "/dev/termination-log", 
+            "name": "cert-manager", 
+            "imagePullPolicy": "IfNotPresent", 
+            "securityContext": {
+              "runAsNonRoot": true, 
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }, 
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              }, 
+              "allowPrivilegeEscalation": false
+            }, 
+            "image": "projects.registry.vmware.com/tkg/cert-manager-controller@sha256:c5ff152d8391ca52ef6d6563001d41543860b687ad294fea38f28a7906920b31", 
+            "terminationMessagePolicy": "File", 
+            "resources": {}
+          }
+        ]
+      }
+    }
+  }
+}
+EOF
+
+	kubectl patch --type=merge deployment cert-manager -n cert-manager --patch "$PATCH1"
+
+	#
+	# cert-manager-cainjector
+	#
+
+read -r -d '' PATCH2 <<'EOF'
+{
+   "spec": {
+      "template": {
+         "spec": {
+        "containers": [
+          {
+            "terminationMessagePath": "/dev/termination-log", 
+            "name": "cert-manager", 
+            "imagePullPolicy": "IfNotPresent", 
+            "securityContext": {
+              "runAsNonRoot": true, 
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }, 
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              }, 
+              "allowPrivilegeEscalation": false
+            }, 
+            "image": "projects.registry.vmware.com/tkg/cert-manager-cainjector@sha256:b5b8733f1e4af45f9ea1ca51f2d8fc112d4e60297e954ba7954e5098c3976555", 
+            "terminationMessagePolicy": "File", 
+            "resources": {}
+          }
+        ]
+      }
+    }
+  }
+}
+EOF
+
+	kubectl patch --type=merge deployment cert-manager -n cert-manager --patch "$PATCH2"
+
+
+	#
+	# cert-manager-webhook
+	#
+
+read -r -d '' PATCH3 <<'EOF'
+{
+   "spec": {
+      "template": {
+         "spec": {
+        "containers": [
+          {
+            "terminationMessagePath": "/dev/termination-log", 
+            "name": "cert-manager", 
+            "imagePullPolicy": "IfNotPresent", 
+            "securityContext": {
+              "runAsNonRoot": true, 
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }, 
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              }, 
+              "allowPrivilegeEscalation": false
+            }, 
+            "image": "projects.registry.vmware.com/tkg/cert-manager-webhook@sha256:edf212ccc5b9809699ed3a424db98dbdc615e4b43ed8afc260836572a0ba7256", 
+            "terminationMessagePolicy": "File", 
+            "resources": {}
+          }
+        ]
+      }
+    }
+  }
+}
+EOF
+
+	kubectl patch --type=merge deployment cert-manager -n cert-manager --patch "$PATCH3"
+
+	#
+	# check the deployments
+	#
+
+
+	kubectl get deployment -n cert-manager
+
+	NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+	cert-manager              1/1     1            1           3d1h
+	cert-manager-cainjector   1/1     0            1           3d1h
+	cert-manager-webhook      1/1     0            1           3d1h
+
+
+
+	kubectl get pods -n cert-manager
+	NAME                                       READY   STATUS    RESTARTS      AGE
+	cert-manager-6cb7cc4778-8xflf              1/1     Running   0             37s
+	cert-manager-cainjector-6cd4cd948d-qf7cs   1/1     Running   4 (24h ago)   46h
+	cert-manager-webhook-569f75495-5hwsq       1/1     Running   0             46h
+
+	#
+	# Option (C)
+	#
+	# Use public cert manager from https://cert-manager.io/docs/installation/#default-static-install
+
+
+
+27) Move Images
+
 
 
 
