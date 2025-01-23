@@ -1116,7 +1116,7 @@ sudo cp velero /usr/local/bin/
 
 
 
-30) Verify
+30) Verify TP-SM install
 	cd /home/kubo/orf
 
 	/bigdisk/tanzu-installer/cli_bundle/linux/amd64/tanzu-sm-installer verify -f /home/kubo/orf/config.yaml -u "${ARTIFACTORY_USER}:${ARTIFACTORY_API_TOKEN}" -r ${DOCKER_REGISTRY}/hub-self-managed/${TANZU_SM_VERSION}/repo --install-version ${TANZU_SM_VERSION} --kubeconfig ${KUBECONFIG}
@@ -1125,13 +1125,11 @@ sudo cp velero /usr/local/bin/
 	
 
 
-31) Install
+31) Install TP-SM 
 	/bigdisk/tanzu-installer/cli_bundle/linux/amd64/tanzu-sm-installer install -f /home/kubo/orf/config.yaml -u "${ARTIFACTORY_USER}:${ARTIFACTORY_API_TOKEN}" -r ${DOCKER_REGISTRY}/hub-self-managed/${TANZU_SM_VERSION}/repo --install-version ${TANZU_SM_VERSION} --kubeconfig ${KUBECONFIG}
 
+	# enter foundation
 
-
-
-32) Check
 
 
 32) Check
@@ -1197,6 +1195,38 @@ sudo cp velero /usr/local/bin/
 	# 2 Insufficient memory, 5 Insufficient cpu. preemption: 0/6 nodes are available: 
 	# 1 Preemption is not helpful for scheduling, 5 No preemption victims found for incoming pod.
 	
+	# And when you make the cluster bigger... the following results
+
+	# kubo@UGN5JmN7F92hA:~/orf$ kubectl get pods -A | grep -v Running  | wc -l
+	# 174
+	# kubo@UGN5JmN7F92hA:~/orf$ kubectl get pods -A | grep -v Running  | wc -l
+	# 172
+	# kubo@UGN5JmN7F92hA:~/orf$ kubectl get pods -A | grep -v Running  | wc -l
+	# 172
+	# kubo@UGN5JmN7F92hA:~/orf$ kubectl get pods -A | grep -v Running  | wc -l
+	# 170
+
+
+
+	#
+	#
+	# Check the install
+	#
+	/bigdisk/tanzu-installer/cli_bundle/linux/amd64/tanzu-sm-installer post-verify --kubeconfig ${KUBECONFIG}
+
+
+
+	#
+	# TP=SM delete / clean up
+	#
+
+	/bigdisk/tanzu-installer/cli_bundle/linux/amd64/tanzu-sm-installer reset -p --kubeconfig ${KUBECONFIG}
+
+	# 2025-01-23T17:47:49Z [i] Executing this reset will purge the namespace and all resources associated with 'Tanzu Platform Self Managed.'
+	# Removing PVC/PV deletion, Do you wish to proceed with the reset?
+	# If you are sure you can continue by typing 'Tanzu For Life' at the prompt: Tanzu For Life
+
+	# Delete takes a long time... !!!!
 
 
 
@@ -1209,6 +1239,7 @@ sudo cp velero /usr/local/bin/
 34) Update DNS somehow (not how yet...)
 
 	tanzu.platform.io = 192.168.0.6
+
 
 
 
