@@ -1,9 +1,16 @@
 ```
-Shepherd / Sheepctl
 =====================
-Original instructions(not working!): https://vmw-confluence.broadcom.net/pages/viewpage.action?pageId=1862031629
-
-1) SSH key
+#
+# Original instructions (Shepheard: https://vmw-confluence.broadcom.net/pages/viewpage.action?pageId=1862031629
+# My Instructions: https://github.com/ogelbric/shepherd-orf/blob/main/README.md
+# Thomas Instructions: https://docs.google.com/document/d/13pdIArdZy5BWsnMIBTCi2vbAUYZ6YlfdCuFWanM3rFk/edit?tab=t.0
+# Official doc: https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-platform/10-0/tnz-platform/tp-sm-install-install-tp-sm.html
+#
+# For all of this to work you need to be on VPN and on a FullVPN connection (my case LasVegas Full) 
+# Look for drop down in VPN change gateway section
+#
+	
+1) SSH key (do on Mac)
 	ssh-keygen -t ed25519 -C "shepardkey"
 	Result:
 		Your identification has been saved in /Users/ogelbrich/.ssh/id_ed25519
@@ -49,8 +56,10 @@ Original instructions(not working!): https://vmw-confluence.broadcom.net/pages/v
 |                             TOTAL |      10 |         |         4 |        5 |     25 |        |
 +-----------------------------------+---------+---------+-----------+----------+--------+--------+
 
-8) Look at looks
+8) Look at looks / or creating a new ENV 
+
 	sheepctl lock list -n Tanzu-Sales
+	
 
 +--------------------------------------+----------+----------------+------------+-------------+--------------------+-----------------+
 |                  ID                  |  STATUS  |    CREATED     | EXPIRATION |  NAMESPACE  |        POOL        |   DESCRIPTION   |
@@ -60,44 +69,72 @@ Original instructions(not working!): https://vmw-confluence.broadcom.net/pages/v
 | af6bb058-b2fa-4d70-bdd1-16f5f7a5f5ff | locked   | a day ago      | in 4 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by User001 |
 +--------------------------------------+----------+----------------+------------+-------------+--------------------+-----------------+
 
-9) Get the lock information
+
+	#
+	# new ENV
+	#
+	sheepctl target set -u https://epc-shepherd.lvn.broadcom.net -n Tanzu-Sales
+	sheepctl pool lock TKGs-Non-Airgapped -n Tanzu-Sales --lifetime 5d --description 'Used by EPC TSL version 2'
+	sheepctl lock list -n Tanzu-Sales
+
++--------------------------------------+--------+-------------------+------------+-------------+--------------------+---------------------------+
+|                  ID                  | STATUS |      CREATED      | EXPIRATION |  NAMESPACE  |        POOL        |        DESCRIPTION        |
++--------------------------------------+--------+-------------------+------------+-------------+--------------------+---------------------------+
+| 9596f88d-0681-4e8d-a4b9-5c47b35ab4d6 | locked | a few seconds ago | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL version 2 |
+| ffaa1e86-3a00-4c8a-81e0-862aee201331 | locked | 7 days ago        | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL           |
++--------------------------------------+--------+-------------------+------------+-------------+--------------------+---------------------------+
+
+	sheepctl lock get -n Tanzu-Sales {lock guid} -j -o lockfile.json
+
+
+9) Get the lock information (json file)
 	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331
 
 10) Get vCenter info
 	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331  > /tmp/a 2>&1 ; grep -w5  administrator /tmp/a | tail -6
             "vimUsername": "administrator@vsphere.local",
-            "vimPassword": "SBFJWxxxxxxxxxr",
-
+            "vimPassword": "SBFJWvHc.z-8kd0r",
 11) Jumper Info
 	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331  > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep hostname | head -1
         "hostname": "10.167.66.84",
 	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331  > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep password | tail -1
-        "password": "Poxxxxxxxx"
+        "password": "Ponies!23"
 
 12) ssh to jumper
-	ssh kubo@10.167.66.84 #Poxxxxxx
+	ssh kubo@10.167.66.84 #Ponies!23
 	mkdir orf
 	cd orf
 
 13) Connect to supvisor cluster
 	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
-	# SBFJWxxxxxxxr
+	# SBFJWvHc.z-8kd0r
 
 14) Get storage class
 	kubectl get sc
 	NAME                   PROVISIONER              RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
 	tkgs-k8s-obj-policy    csi.vsphere.vmware.com   Delete          Immediate           true                   21h
 
-15) Create new content lib
+15) Create new content lib (current content line has older images then the guest cluster needs)
 	https://wp-content.vmware.com/v2/latest/lib.json
 
-16) Re-write cluster yaml with new storage class name
+16) Re-write cluster yaml with new storage class name (yaml is in next step)
 	cat cluster1.yaml | sed "s/pacific-gold-storage-policy/tkgs-k8s-obj-policy/g" > cluster11.yaml
 	Fix version to max: v1.29.4---vmware.3-fips.1-tkg.1           v1.29.4+vmware.3-fips.1-tkg.1  
 	Fix namespace 
+	#
+	Create a VM Class
+	Login to the vCenter 
+		administrator@vsphere.local
+		Goto Workload Management > Services > VM Service > Manage > VM Classes > CREATE VM CLASS 
+		Give a Name: tpsm
+			compatibility choose default: don't change the default value
+			CPU 12, Memory 36GB
+			Under Namespaces > testns (namespace1000) > VM Service > MANAGE VM CLASSES > Click the checkbox against tpsm > click OK
+
 
 17) Cluster yaml that worked: 
 
+cat <<'EOF' > /home/kubo/orf/cluster111.yaml
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
@@ -124,7 +161,7 @@ spec:
       - name:  ntp
         value: "ntp.broadcom.net"
       - name: vmClass
-        value: best-effort-medium
+        value: tpsm #12CPU and 36GB RAM 
       - name: storageClass
         value: tkgs-k8s-obj-policy
       - name: defaultStorageClass
@@ -143,10 +180,24 @@ spec:
           mountPath: "/var/lib/etcd"
           name: etcd
           storageClass: tkgs-k8s-obj-policy
+EOF
+	#
+	# Create cluster
+	#
+	kubectl apply -f cluster111.yaml
+
 
 18) Log onto guest cluster 
+	#
+	# cluster1
+	#
 	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace1000 --tanzu-kubernetes-cluster-name cluster1 --insecure-skip-tls-verify
-	# SBFJWxxxxxxxxxx
+	#
+	# orfcluster1
+	#
+	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace1000 --tanzu-kubernetes-cluster-name orfcluster1 --insecure-skip-tls-verify
+	#
+	# SBFJWvHc.z-8kd0r
 
 19) Test guest cluster
 	alias k=kubectl
@@ -195,15 +246,26 @@ Official Doc: https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-pl
 	 
 	sudo tar -xzvf tanzu-self-managed-10.0.0.tar.gz  -C /bigdisk/tanzu-installer
 
-23) Install some stuff... 
+23) Install some stuff on jump box... 
 	cd orf
 	#
 	#Fetch worker cluster kubeconfig and export it
 	#
+	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
+	# SBFJWvHc.z-8kd0r
+
 	kubectl config use-context namespace1000
 	kubectl get secret -n namespace1000
+	#
+	# cluster1 kubeconfig
+	#
 	kubectl get secret cluster1-kubeconfig -n namespace1000 -o json | jq -r '.data["value"] | @base64d' > wrk-kc 
 	export KUBECONFIG=wrk-kc
+	#
+	# orfcluster1 kubeconfig
+	#
+	kubectl get secret orfcluster1-kubeconfig -n namespace1000 -o json | jq -r '.data["value"] | @base64d' > orfwrk-kc 
+	export KUBECONFIG=orfwrk-kc
 	#
 	#Carvel tools
 	#
@@ -240,6 +302,70 @@ Official Doc: https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-pl
 	sheepctl lock extend ffaa1e86-3a00-4c8a-81e0-862aee201331 -t 3d -n Tanzu-Sales 
 
 
+25) DNS update on the jump box
+
+	sudo vi /etc/dnsmasq.d/vlan-dhcp-dns.conf
+	address=/tanzu.platform.io/192.168.116.206
+	sudo systemctl restart dnsmasq
+
+
+	cat /home/kubo/orf/dnssetup.sh
+
+cat <<'EOFEOF' > /home/kubo/orf/dnssetup.sh
+#!/bin/bash
+ 
+# Step 1: Install dnsmasq
+echo "Installing dnsmasq..."
+sudo apt update && sudo apt install -y dnsmasq
+ 
+# Step 2: Update /etc/hosts with the correct hostname
+echo "Ensuring /etc/hosts has the correct hostname..."
+sudo sed -i "/127.0.1.1/d" /etc/hosts
+echo "127.0.1.1 $(hostname)" | sudo tee -a /etc/hosts
+ 
+# Step 3: Configure dnsmasq to listen on localhost and use upstream DNS
+echo "Configuring dnsmasq..."
+sudo bash -c "cat > /etc/dnsmasq.conf" <<EOF
+listen-address=127.0.0.1
+bind-interfaces
+no-resolv
+server=192.19.189.10
+cache-size=1000
+EOF
+ 
+# Step 4: Stop and disable systemd-resolved
+echo "Disabling systemd-resolved..."
+sudo systemctl stop systemd-resolved
+sudo systemctl disable systemd-resolved
+sudo rm -f /etc/resolv.conf
+ 
+# Step 5: Create /etc/resolv.conf pointing to dnsmasq
+echo "Setting /etc/resolv.conf..."
+echo "nameserver 127.0.0.1" | sudo tee /etc/resolv.conf
+ 
+# Step 6: Restart dnsmasq
+echo "Restarting dnsmasq..."
+sudo systemctl restart dnsmasq
+sudo systemctl enable dnsmasq
+ 
+# Step 7: Verify dnsmasq service status
+echo "Checking dnsmasq status..."
+sudo systemctl status dnsmasq | grep Active
+ 
+# Step 8: Test DNS resolution
+echo "Testing DNS resolution..."
+dig google.com
+ 
+# Step 9: Optional - Check logs for errors
+echo "Checking dnsmasq logs for errors..."
+sudo tail -n 10 /var/log/syslog | grep dnsmasq
+ 
+echo "dnsmasq setup complete!"
+EOFEOF
+
+	chmod +x dnssetup.sh
+	./dnssetup.sh
+
 26) Cert Manager
 	Log onto guest cluster step 18
 	alias k=kubectl
@@ -273,8 +399,9 @@ Official Doc: https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-pl
 	#
 	# Create a repo file (Add the Package Repository to the Cluster)
 	#
-	cat packagerepo.yaml
+	cat packagerepo.yaml # Vi or run below EOF...EOF 
 
+cat <<'EOF' > /home/kubo/orf/packagerepo1.yaml
 apiVersion: packaging.carvel.dev/v1alpha1
 kind: PackageRepository
 metadata:
@@ -284,6 +411,7 @@ spec:
   fetch:
     imgpkgBundle:
       image: projects.registry.vmware.com/tkg/packages/standard/repo:v2.2.0_update.2
+EOF
 
 	#
 	# make sure you are still logged onto the guys cluster
@@ -568,7 +696,6 @@ EOF
 
 
 
-
 27) Storage class update
 
 
@@ -583,6 +710,7 @@ EOF
 	#
 	# make sure below yaml has the correct (tkgs-k8s-obj-policy) Storage class
 
+cat <<'EOF' > /home/kubo/orf/storage1.yaml
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -709,13 +837,17 @@ provisioner: csi.vsphere.vmware.com
 reclaimPolicy: Retain
 allowVolumeExpansion: true
 volumeBindingMode: Immediate
+EOF
 
+	kubectl apply -f /home/kubo/orf/storage1.yaml
 
-	kubectl apply -f ./storage.yaml
+	#
+	# output
+	#
 
 	# storageclass.storage.k8s.io/postgresql-storage-class created
 	# storageclass.storage.k8s.io/opensearch-storage-class created
-	#storageclass.storage.k8s.io/kafka-storage-class created
+	# storageclass.storage.k8s.io/kafka-storage-class created
 	# storageclass.storage.k8s.io/zk-storage-class created
 	# storageclass.storage.k8s.io/redis-storage-class created
 	# storageclass.storage.k8s.io/prometheus-storage-class created
@@ -741,20 +873,32 @@ volumeBindingMode: Immediate
 28) Install verification
 
 	#
-	# push image to docker
+	# In this env the image is already on JFrog - you will need request access on 1.secure
+	# other wise it needs to be pushed
 	# docker login <path-to-local-repo>
+	# push image to docker 
 	# imgpkg copy --tar tanzusm-<VERSION>.tar --to-repo=<path-to-local-repo>
 
-	export TANZU_SM_VERSION=10.0.0-oct-2024-rc.533-vc0bb325
+	export TANZU_SM_VERSION="10.0.0-oct-2024-rc.533-vc0bb325" # from Bridget
 	export OS=$(uname | tr '[:upper:]' '[:lower:]')
 	export ARCH=$(if [[ $(uname -m) = "x86_64" ]]; then  echo "amd64"; else echo "arm64"; fi)
-	export ARTIFACTORY_USER=<BROADCOM_ARTIFACTORY_USER> // could use a svc user or individual
-	export ARTIFACTORY_API_TOKEN=<BROADCOM_ARTIFACTORY_API_TOKEN> // could use a svc user or individual
-	export DOCKER_REGISTRY=tis-tanzuhub-sm-docker-dev-local.usw1.packages.broadcom.com
+	export ARTIFACTORY_USER="og010490" 
+	export ARTIFACTORY_API_TOKEN="cmVmdGtuOjAxOjE3NjkxMDY0MzA6c2E2M2dtR2ZyQ2JnMXBIdWFnNW9ZckpzWmg1" 
+	export DOCKER_REGISTRY="tis-tanzuhub-sm-docker-dev-local.usw1.packages.broadcom.com"
+
+
+	#
+	# I tested my connection with this curl command
+	# it has a file error when it works... (curl to output it to your terminal anyway, or consider "--output )
+	#
+	curl -u ${ARTIFACTORY_USER}:${ARTIFACTORY_API_TOKEN} https://usw1.packages.broadcom.com/artifactory/tis-tanzuhub-sm-docker-dev-local/hub-self-managed/${TANZU_SM_VERSION}/releases/non-airgapped/tanzu-self-managed-${TANZU_SM_VERSION}-${OS}-${ARCH}.tar.gz
+
+
 
 
 	cd /home/kubo/orf
 	export KUBECONFIG=''
+	alias k=kubectl
 
 	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
 	# SBFJWvHc.z-8kd0r
@@ -767,8 +911,9 @@ volumeBindingMode: Immediate
 	export KUBECONFIG=orfwrk-kc
 
 	kubectl config get-contexts
-	CURRENT   NAME                            CLUSTER       AUTHINFO            NAMESPACE
-	*         orfcluster1-admin@orfcluster1   orfcluster1   orfcluster1-admin   
+	#
+	# CURRENT   NAME                            CLUSTER       AUTHINFO            NAMESPACE
+	# *         orfcluster1-admin@orfcluster1   orfcluster1   orfcluster1-admin   
 
 
 	cd /bigdisk/tanzu-installer
@@ -778,9 +923,14 @@ volumeBindingMode: Immediate
 	cp config.yaml /home/kubo/orf/config.yaml.orig
 	
 
-#
-# Needs work below
-#
+	#
+	# File below is "2 Space" yaml sensitive !!!!!!!! 
+	# I had "oauthProviders:" 2 space to the left and it cause the verify step to fail
+	# From other people I heard the cert has to be spaced "right" as well !!!!
+	#
+	#
+	# FYI this file if not saved will be over written by the installer!!!!!
+	#
 
 cat <<'EOF' > /home/kubo/orf/config.yaml
 # @copyright Copyright Broadcom. All Rights Reserved.
@@ -796,14 +946,16 @@ flavor: full
 profile: foundation
 # Version of Tanzu Platform Self Managed to install.  This should not normally
 # be changed.
-version: '10.0.0-4706-v8b7d709'
+#version: '110.1.0-5123-vc1c76f4'
+version: '10.0.0-oct-2024-rc.533-vc0bb325'
 # Kubernetes Ingress settings.
 ingress:
   # Static IP address that needs to be assigned to contour load balancer
   # The host associated with this IP will be used for accessing UI and other ingress objects.
   # This is optional and If not provided, random IP address from available IP pool will be assigned
   # to contour load balancer.
-  loadBalancerIP: "192.168.116.206"
+  #loadBalancerIP: "192.168.116.206"
+  #loadBalancerIP: ""
   # DNS name that can reach the system.  If unset, and
   # `controller` is enabled, then get the external name from
   # the installed ingress controller.
@@ -872,7 +1024,7 @@ login:
       ##### --------------------------------*************************-----------------------------------------######
       ##### --------------------------------*************************-----------------------------------------######
       #OIDC/Oauth servers details, the config supports multiple oauth providers but the recommendation is 1
-oauthProviders:
+  oauthProviders:
 #    #Unique name for this oauth server configuration
     - name: "okta.test"
 #      #Certificate of the oauth server if needs to connect over ssl
@@ -951,15 +1103,53 @@ EOF
 
 
 
+29) Fixes this error (2025-01-22T21:01:57Z [x] Missing tools for installation:  velero)
 
-29) Verify
-	cd /bigdisk/tanzu-installer/cli_bundle/linux/amd64
+cd /bigdisk/tanzu-installer/additional-resources/binaries/linux/amd64
+​​sudo cp crashd /usr/local/bin/
+sudo cp imgpkg /usr/local/bin/
+sudo cp kctrl /usr/local/bin/
+sudo cp kapp /usr/local/bin/
+sudo cp tanzu /usr/local/bin/
+sudo cp kbld /usr/local/bin/
+sudo cp velero /usr/local/bin/
 
-	./tanzu-sm-installer verify -f config.yaml -u "${ARTIFACTORY_USER}:${ARTIFACTORY_API_TOKEN}" -r ${DOCKER_REGISTRY}/hub-self-managed/${TANZU_SM_VERSION}/repo --install-version ${TANZU_SM_VERSION} --kubeconfig ${KUBECONFIG}
 
 
-30) Install
-	./tanzu-sm-installer install -f config.yaml -u "${ARTIFACTORY_USER}:${ARTIFACTORY_API_TOKEN}" -r ${DOCKER_REGISTRY}/hub-self-managed/${TANZU_SM_VERSION}/repo --install-version ${TANZU_SM_VERSION} --kubeconfig ${KUBECONFIG}
+30) Verify
+	cd /home/kubo/orf
+
+	/bigdisk/tanzu-installer/cli_bundle/linux/amd64/tanzu-sm-installer verify -f /home/kubo/orf/config.yaml -u "${ARTIFACTORY_USER}:${ARTIFACTORY_API_TOKEN}" -r ${DOCKER_REGISTRY}/hub-self-managed/${TANZU_SM_VERSION}/repo --install-version ${TANZU_SM_VERSION} --kubeconfig ${KUBECONFIG}
+
+
+	
+
+
+31) Install
+	/bigdisk/tanzu-installer/cli_bundle/linux/amd64/tanzu-sm-installer install -f /home/kubo/orf/config.yaml -u "${ARTIFACTORY_USER}:${ARTIFACTORY_API_TOKEN}" -r ${DOCKER_REGISTRY}/hub-self-managed/${TANZU_SM_VERSION}/repo --install-version ${TANZU_SM_VERSION} --kubeconfig ${KUBECONFIG}
+
+
+
+
+32) Check
+
+	kubectl get packageinstall -A
+	#
+	# find the problems
+	#
+	kubectl get packageinstall -A | grep -v succeeded
+
+
+
+33) Get external IP
+
+	kubectl get svc -A | grep Load
+
+	# tanzusm             contour-envoy                                      LoadBalancer   10.106.213.251   192.168.0.6   80:32081/TCP,443:30293/TCP                              16h
+
+34) Update DNS somehow (not how yet...)
+
+	tanzu.platform.io = 192.168.0.6
 
 
 
