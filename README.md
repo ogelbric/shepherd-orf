@@ -1133,11 +1133,70 @@ sudo cp velero /usr/local/bin/
 
 32) Check
 
+
+32) Check
+
 	kubectl get packageinstall -A
 	#
 	# find the problems
 	#
 	kubectl get packageinstall -A | grep -v succeeded
+	#
+	# get all the errors
+	#
+	kubectl get packageinstall -A | grep -v succeeded | tail -n+2 | awk '{ print "kubectl describe packageinstall -n " $1 " " $2 " | grep Useful >> /tmp/e1" }' > /tmp/e0
+	chmod +x /tmp/e0
+	rm /tmp/e1
+	/tmp/e0
+	cat /tmp/e1
+
+	#
+	# In my case
+	# 
+	#  Useful Error Message:    kapp: Error: Timed out waiting after 5m0s for resources:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ccc-rules-service (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/daedalus (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ensemble-application-metadata (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ensemble-provider-service (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ensemble-findings (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/idem-service-event-ingestion (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/k8s-ingestion-service-lemans (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/kafka-topic-controller (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/lemans-gateway-hsm-cluster-1 (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/lemans-resources (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: Timed out waiting after 15m0s for resources:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/postgres-endpoint-controller (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/raas (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/reloader-reloader (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile packageinstall/vss-inventory-service (packaging.carvel.dev/v1alpha1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/tas-ingestion-service-lemans (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile packageinstall/tmc-local-stack (packaging.carvel.dev/v1alpha1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: Timed out waiting after 15m0s for resources:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/account-manager-server (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ucp-kine (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/vcf-ingestion-service (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/cloud-accounts-service (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/findings (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ingestion (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/inventory (apps/v1) namespace: tanzusm:
+
+	# Lets look at the PODs
+
+	kubectl get pods -A | grep -v Running
+
+	kubectl get pods -A | grep -v Running | tail -n+2 | awk '{ print "kubectl describe pod -n " $1 " " $2 " | grep Warning >> /tmp/e3" }' > /tmp/e2
+
+	chmod +x /tmp/e2
+	rm /tmp/e3
+	/tmp/e2
+	cat /tmp/e3
+
+	# In my case Insufficient memory, 5 Insufficient cpu. preemption: 0/6  Need bigger cluster 
+	# Warning  FailedScheduling  26m (x160 over 13h)  default-scheduler  0/6 nodes are available: 
+	# 1 node(s) had untolerated taint {node-role.kubernetes.io/control-plane: }, 
+	# 2 Insufficient memory, 5 Insufficient cpu. preemption: 0/6 nodes are available: 
+	# 1 Preemption is not helpful for scheduling, 5 No preemption victims found for incoming pod.
+	
 
 
 
