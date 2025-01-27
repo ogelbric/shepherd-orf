@@ -1,4 +1,5 @@
 ```
+Shepherd / Sheepctl
 =====================
 #
 # Original instructions (Shepheard: https://vmw-confluence.broadcom.net/pages/viewpage.action?pageId=1862031629
@@ -74,71 +75,112 @@
 	# new ENV
 	#
 	sheepctl target set -u https://epc-shepherd.lvn.broadcom.net -n Tanzu-Sales
-	sheepctl pool lock TKGs-Non-Airgapped -n Tanzu-Sales --lifetime 5d --description 'Used by EPC TSL version 2'
+	sheepctl pool lock TKGs-Non-Airgapped -n Tanzu-Sales --lifetime 5d --description 'Used by EPC TSL version 3'
 	sheepctl lock list -n Tanzu-Sales
 
-+--------------------------------------+--------+-------------------+------------+-------------+--------------------+---------------------------+
-|                  ID                  | STATUS |      CREATED      | EXPIRATION |  NAMESPACE  |        POOL        |        DESCRIPTION        |
-+--------------------------------------+--------+-------------------+------------+-------------+--------------------+---------------------------+
-| 9596f88d-0681-4e8d-a4b9-5c47b35ab4d6 | locked | a few seconds ago | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL version 2 |
-| ffaa1e86-3a00-4c8a-81e0-862aee201331 | locked | 7 days ago        | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL           |
-+--------------------------------------+--------+-------------------+------------+-------------+--------------------+---------------------------+
++--------------------------------------+--------+--------------+------------+-------------+--------------------+---------------------------+
+|                  ID                  | STATUS |   CREATED    | EXPIRATION |  NAMESPACE  |        POOL        |        DESCRIPTION        |
++--------------------------------------+--------+--------------+------------+-------------+--------------------+---------------------------+
+| 0040b5bd-deef-4bb7-a131-69acb8f291b4 | locked | a minute ago | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL version 3 |
+| 9596f88d-0681-4e8d-a4b9-5c47b35ab4d6 | locked | a day ago    | in 4 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL version 2 |
+| ffaa1e86-3a00-4c8a-81e0-862aee201331 | locked | 8 days ago   | in 4 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL           |
++--------------------------------------+--------+--------------+------------+-------------+--------------------+---------------------------+
+
 
 	sheepctl lock get -n Tanzu-Sales {lock guid} -j -o lockfile.json
 
 
 9) Get the lock information (json file)
-	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331
+	sheepctl lock list -n Tanzu-Sales 
+	sheepctl lock get -n Tanzu-Sales 0040b5bd-deef-4bb7-a131-69acb8f291b4
 
 10) Get vCenter info
-	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331  > /tmp/a 2>&1 ; grep -w5  administrator /tmp/a | tail -6
+	sheepctl lock get -n Tanzu-Sales 0040b5bd-deef-4bb7-a131-69acb8f291b4  > /tmp/a 2>&1 ; grep -w5  administrator /tmp/a | tail -9
             "vimUsername": "administrator@vsphere.local",
-            "vimPassword": "SBFJWvHc.z-8kd0r",
+            "vimPassword": "OKIXCqns1h_8-kVi",
+	    "systemPNID": "lvn-dvm-10-161-135-191.dvm.lvn.broadcom.net"
 11) Jumper Info
-	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331  > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep hostname | head -1
-        "hostname": "10.167.66.84",
-	sheepctl lock get -n Tanzu-Sales ffaa1e86-3a00-4c8a-81e0-862aee201331  > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep password | tail -1
+	sheepctl lock get -n Tanzu-Sales 0040b5bd-deef-4bb7-a131-69acb8f291b4  > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep hostname | head -1
+        "hostname": "10.161.131.247",
+	sheepctl lock get -n Tanzu-Sales 0040b5bd-deef-4bb7-a131-69acb8f291b4  > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep password | tail -1
         "password": "Ponies!23"
 
 12) ssh to jumper
-	ssh kubo@10.167.66.84 #Ponies!23
+	ssh kubo@10.161.131.247 #Ponies!23
 	mkdir orf
 	cd orf
 
-13) Connect to supvisor cluster
-	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
-	# SBFJWvHc.z-8kd0r
-
-14) Get storage class
-	kubectl get sc
-	NAME                   PROVISIONER              RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
-	tkgs-k8s-obj-policy    csi.vsphere.vmware.com   Delete          Immediate           true                   21h
-
-15) Create new content lib (current content line has older images then the guest cluster needs)
-	https://wp-content.vmware.com/v2/latest/lib.json
-
-16) Re-write cluster yaml with new storage class name (yaml is in next step)
-	cat cluster1.yaml | sed "s/pacific-gold-storage-policy/tkgs-k8s-obj-policy/g" > cluster11.yaml
-	Fix version to max: v1.29.4---vmware.3-fips.1-tkg.1           v1.29.4+vmware.3-fips.1-tkg.1  
-	Fix namespace 
+13) Test connect to supvisor cluster
 	#
-	Create a VM Class
+	# double check the IP in vCenter -> workload management -> supervisor
+	# 
+	#
+
+	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
+	# OKIXCqns1h_8-kVi
+	
+
+14) Re-write cluster yaml with new storage class name (yaml is in next step)
+
+	#create namespace = namespace1000
+	#create in namespace the new lib = https://wp-content.vmware.com/v2/latest/lib.json / when needed
+	#  add new content lib to supervise - general - Tanzu Kubernetes Grid Service 
+	#create in namespace administrator@vsphere.local owner access
+	#create in namespace storage (tkgs-k8s-obj-policy)
+	#Create a VM Class
 	Login to the vCenter 
 		administrator@vsphere.local
 		Goto Workload Management > Services > VM Service > Manage > VM Classes > CREATE VM CLASS 
 		Give a Name: tpsm
 			compatibility choose default: don't change the default value
-			CPU 12, Memory 36GB
-			Under Namespaces > testns (namespace1000) > VM Service > MANAGE VM CLASSES > Click the checkbox against tpsm > click OK
+			CPU=8, Mem 32GB
+			#CPU 12, Memory 36GB this does not deploy in the shepherd env
+			#
+			Under Namespaces > namespace1000) > VM Service > MANAGE VM CLASSES > Click the checkbox against tpsm > click OK
+		Add the new VMclass to the namespace
+
+	#cat cluster1.yaml | sed "s/pacific-gold-storage-policy/tkgs-k8s-obj-policy/g" > cluster11.yaml
+	#Fix version to max: v1.29.4---vmware.3-fips.1-tkg.1           v1.29.4+vmware.3-fips.1-tkg.1  
+	#Fix namespace my case namespace1000
+	#
+	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
+	# OKIXCqns1h_8-kVi
+	kubectl config use-context namespace1000
+
+	kubectl get sc
+	NAME                   PROVISIONER              RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+	tkgs-k8s-obj-policy    csi.vsphere.vmware.com   Delete          Immediate           true                   21h
+
+	alias k=kubectl
+	k get virtualmachineclasses
+
+NAME                  CPU   MEMORY
+best-effort-2xlarge   8     64Gi
+best-effort-4xlarge   16    128Gi
+best-effort-8xlarge   32    128Gi
+best-effort-large     4     16Gi
+best-effort-medium    2     8Gi
+best-effort-small     2     4Gi
+best-effort-xlarge    4     32Gi
+best-effort-xsmall    2     2Gi
+guaranteed-2xlarge    8     64Gi
+guaranteed-4xlarge    16    128Gi
+guaranteed-8xlarge    32    128Gi
+guaranteed-large      4     16Gi
+guaranteed-medium     2     8Gi
+guaranteed-small      2     4Gi
+guaranteed-xlarge     4     32Gi
+guaranteed-xsmall     2     2Gi
+tpsm                  8     32Gi
 
 
-17) Cluster yaml that worked: 
+15) Cluster yaml that worked: 
 
-cat <<'EOF' > /home/kubo/orf/cluster111.yaml
+cat <<'EOF' > /home/kubo/orf/orfcluster.yaml
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
-  name: cluster1
+  name: orfcluster1
   namespace: namespace1000
 spec:
   clusterNetwork:
@@ -156,7 +198,7 @@ spec:
       machineDeployments:
         - class: node-pool
           name: node-pool-1
-          replicas: 5
+          replicas: 14 # in doc this is 14
     variables:
       - name:  ntp
         value: "ntp.broadcom.net"
@@ -184,31 +226,49 @@ EOF
 	#
 	# Create cluster
 	#
-	kubectl apply -f cluster111.yaml
+	kubectl apply -f orfcluster.yaml
 
 
 18) Log onto guest cluster 
-	#
-	# cluster1
-	#
-	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace1000 --tanzu-kubernetes-cluster-name cluster1 --insecure-skip-tls-verify
 	#
 	# orfcluster1
 	#
 	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace1000 --tanzu-kubernetes-cluster-name orfcluster1 --insecure-skip-tls-verify
 	#
-	# SBFJWvHc.z-8kd0r
+	# OKIXCqns1h_8-kVi
 
 19) Test guest cluster
 	alias k=kubectl
-	kubeclt get nodes
-NAME                                     STATUS   ROLES           AGE     VERSION
-cluster1-6vj88-lksn5                     Ready    control-plane   19m     v1.29.4+vmware.3-fips.1
-cluster1-node-pool-1-tz745-cz8n9-bndgg   Ready    <none>          5m1s    v1.29.4+vmware.3-fips.1
-cluster1-node-pool-1-tz745-cz8n9-k45x5   Ready    <none>          3m54s   v1.29.4+vmware.3-fips.1
-cluster1-node-pool-1-tz745-cz8n9-lvq8n   Ready    <none>          3m31s   v1.29.4+vmware.3-fips.1
-cluster1-node-pool-1-tz745-cz8n9-qtgk9   Ready    <none>          3m18s   v1.29.4+vmware.3-fips.1
-cluster1-node-pool-1-tz745-cz8n9-tnfqv   Ready    <none>          5m12s   v1.29.4+vmware.3-fips.1
+
+	kubectl config get-contexts
+
+CURRENT   NAME                   CLUSTER       AUTHINFO                                      NAMESPACE
+          192.168.0.2            192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   
+          namespace1000          192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   namespace1000
+*         orfcluster1            192.168.0.3   wcp:192.168.0.3:administrator@vsphere.local   
+          svc-tkg-domain-c9      192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   svc-tkg-domain-c9
+          svc-velero-domain-c9   192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   svc-velero-domain-c9
+          testns                 192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   testns
+
+
+	kubectl get nodes
+
+NAME                                        STATUS   ROLES           AGE   VERSION
+orfcluster1-h75gt-6tgds                     Ready    control-plane   43h   v1.29.4+vmware.3-fips.1
+orfcluster1-node-pool-1-m85gj-djpkz-6ls7r   Ready    <none>          33h   v1.29.4+vmware.3-fips.1
+orfcluster1-node-pool-1-m85gj-djpkz-b9zrp   Ready    <none>          29h   v1.29.4+vmware.3-fips.1
+orfcluster1-node-pool-1-m85gj-djpkz-bjc7t   Ready    <none>          18h   v1.29.4+vmware.3-fips.1
+orfcluster1-node-pool-1-m85gj-djpkz-cbfl6   Ready    <none>          18h   v1.29.4+vmware.3-fips.1
+orfcluster1-node-pool-1-m85gj-djpkz-f8lhg   Ready    <none>          19h   v1.29.4+vmware.3-fips.1
+orfcluster1-node-pool-1-m85gj-djpkz-kqxwt   Ready    <none>          33h   v1.29.4+vmware.3-fips.1
+orfcluster1-node-pool-1-m85gj-djpkz-mrcpl   Ready    <none>          18h   v1.29.4+vmware.3-fips.1
+orfcluster1-node-pool-1-m85gj-djpkz-pbtdj   Ready    <none>          18h   v1.29.4+vmware.3-fips.1
+orfcluster1-node-pool-1-m85gj-djpkz-tqfpp   Ready    <none>          37h   v1.29.4+vmware.3-fips.1
+orfcluster1-node-pool-1-m85gj-djpkz-txcgq   Ready    <none>          21h   v1.29.4+vmware.3-fips.1
+orfcluster1-node-pool-1-m85gj-djpkz-wkml4   Ready    <none>          37h   v1.29.4+vmware.3-fips.1
+orfcluster1-node-pool-1-m85gj-djpkz-xxpt2   Ready    <none>          37h   v1.29.4+vmware.3-fips.1
+
+
 
 20) TP-SM Install steps
 
@@ -222,8 +282,8 @@ Official Doc: https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-pl
 
 22) Moved and Extract
 	#
-	# jump host needs another 150 GB disk to do all of this
-	# vCenter add second disk to server 
+	# jump host needs another 150 GB disk to do all of these downloads
+	# vCenter add second disk to jumper server (Edit - settings - add device (disk) 150GB)
 	#
 	#disk device info
 	lsblk
@@ -238,71 +298,16 @@ Official Doc: https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-pl
 	sudo mkfs.ext4 /dev/sdb1
 	sudo mkdir /bigdisk
 	sudo mount /dev/sdb1 /bigdisk
-	mkdir /bigdisk/tanzu-installer
+	sudo mkdir /bigdisk/tanzu-installer
 	cd /home/kubo/orf
 	#Move from Mac(Internal jump server) to jumper server: 
 	#
-	scp tanzu-self-managed-10.0.0.tar.gz kubo@10.167.66.84:/home/kubo/orf/.   #(2hours 47 min) good thing the jumper has a 85 GB drive
+	scp tanzu-self-managed-10.0.0.tar.gz kubo@10.161.131.247:/home/kubo/orf/.   #(2hours 47 min) good thing the jumper has a 85 GB drive
 	 
 	sudo tar -xzvf tanzu-self-managed-10.0.0.tar.gz  -C /bigdisk/tanzu-installer
 
-23) Install some stuff on jump box... 
-	cd orf
-	#
-	#Fetch worker cluster kubeconfig and export it
-	#
-	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
-	# SBFJWvHc.z-8kd0r
 
-	kubectl config use-context namespace1000
-	kubectl get secret -n namespace1000
-	#
-	# cluster1 kubeconfig
-	#
-	kubectl get secret cluster1-kubeconfig -n namespace1000 -o json | jq -r '.data["value"] | @base64d' > wrk-kc 
-	export KUBECONFIG=wrk-kc
-	#
-	# orfcluster1 kubeconfig
-	#
-	kubectl get secret orfcluster1-kubeconfig -n namespace1000 -o json | jq -r '.data["value"] | @base64d' > orfwrk-kc 
-	export KUBECONFIG=orfwrk-kc
-	#
-	#Carvel tools
-	#
-	mkdir -p build/
-	curl -kL https://carvel.dev/install.sh | K14SIO_INSTALL_BIN_DIR=build bash
-	#
-	#Tanzu-cli
-	#
-	sudo apt install -y ca-certificates curl gpg
-	sudo mkdir -p /etc/apt/keyrings
-	curl -fsSL https://storage.googleapis.com/tanzu-cli-installer-packages/keys/TANZU-PACKAGING-GPG-RSA-KEY.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/tanzu-archive-keyring.gpg
-	echo "deb [signed-by=/etc/apt/keyrings/tanzu-archive-keyring.gpg] https://storage.googleapis.com/tanzu-cli-installer-packages/apt tanzu-cli-jessie main" | sudo tee /etc/apt/sources.list.d/tanzu.list
-	sudo apt update
-	sudo apt install -y tanzu-cli
-	#
-	#Crashd
-	#
-	wget https://github.com/vmware-tanzu/crash-diagnostics/releases/download/v0.3.10/crashd_0.3.10_linux_amd64.tar.gz
-	mkdir -p crashd_0.3.10_linux_amd64
-	tar -xvf crashd_0.3.10_linux_amd64.tar.gz -C crashd_0.3.10_linux_amd64
-	sudo mv crashd_0.3.10_linux_amd64/crashd  /usr/local/bin/crashd
-
-
-24) Making sure the lock is not going away - trying to extend the lease
-
-	sheepctl lock list -n Tanzu-Sales                                               
-+--------------------------------------+--------+--------------+------------+-------------+--------------------+-----------------+
-|                  ID                  | STATUS |   CREATED    | EXPIRATION |  NAMESPACE  |        POOL        |   DESCRIPTION   |
-+--------------------------------------+--------+--------------+------------+-------------+--------------------+-----------------+
-| ffaa1e86-3a00-4c8a-81e0-862aee201331 | locked | 19 hours ago | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL |
-| af6bb058-b2fa-4d70-bdd1-16f5f7a5f5ff | locked | 2 days ago   | in 4 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by User001 |
-+--------------------------------------+--------+--------------+------------+-------------+--------------------+-----------------+
-
-	sheepctl lock extend ffaa1e86-3a00-4c8a-81e0-862aee201331 -t 3d -n Tanzu-Sales 
-
-
-25) DNS update on the jump box
+23) DNS update on the jump box
 
 	sudo vi /etc/dnsmasq.d/vlan-dhcp-dns.conf
 	address=/tanzu.platform.io/192.168.116.206
@@ -366,8 +371,82 @@ EOFEOF
 	chmod +x dnssetup.sh
 	./dnssetup.sh
 
+
+24) Install some stuff on jump box... 
+
+	cd /home/kubo/orf
+	#
+	#Fetch worker cluster kubeconfig and export it
+	#
+	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
+	# OKIXCqns1h_8-kVi
+
+	kubectl config use-context namespace1000
+	kubectl get secret -n namespace1000
+	#
+	# orfcluster kubeconfig
+	#
+	kubectl get secret orfcluster1-kubeconfig -n namespace1000 -o json | jq -r '.data["value"] | @base64d' > orfwrk-kc 
+	export KUBECONFIG=orfwrk-kc
+	#
+	#Carvel tools
+	#
+	mkdir -p build/
+	curl -kL https://carvel.dev/install.sh | K14SIO_INSTALL_BIN_DIR=build bash
+	#
+	#Tanzu-cli
+	#
+	sudo apt install -y ca-certificates curl gpg
+	sudo mkdir -p /etc/apt/keyrings
+	curl -fsSL https://storage.googleapis.com/tanzu-cli-installer-packages/keys/TANZU-PACKAGING-GPG-RSA-KEY.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/tanzu-archive-keyring.gpg
+	echo "deb [signed-by=/etc/apt/keyrings/tanzu-archive-keyring.gpg] https://storage.googleapis.com/tanzu-cli-installer-packages/apt tanzu-cli-jessie main" | sudo tee /etc/apt/sources.list.d/tanzu.list
+	sudo apt update
+	sudo apt install -y tanzu-cli
+	#
+	#Crashd
+	#
+	wget https://github.com/vmware-tanzu/crash-diagnostics/releases/download/v0.3.10/crashd_0.3.10_linux_amd64.tar.gz
+	mkdir -p crashd_0.3.10_linux_amd64
+	tar -xvf crashd_0.3.10_linux_amd64.tar.gz -C crashd_0.3.10_linux_amd64
+	sudo mv crashd_0.3.10_linux_amd64/crashd  /usr/local/bin/crashd
+
+	#
+	#Pull exe's out of tar bundle
+	#
+
+	cd /bigdisk/tanzu-installer/additional-resources/binaries/linux/amd64
+	​​sudo cp crashd /usr/local/bin/
+	sudo cp imgpkg /usr/local/bin/
+	sudo cp kctrl /usr/local/bin/
+	sudo cp kapp /usr/local/bin/
+	sudo cp tanzu /usr/local/bin/
+	sudo cp kbld /usr/local/bin/
+	sudo cp velero /usr/local/bin/
+
+
+25) Making sure the lock is not going away - trying to extend the lease
+
+	sheepctl lock list -n Tanzu-Sales                                               
++--------------------------------------+--------+-------------+------------+-------------+--------------------+---------------------------+
+|                  ID                  | STATUS |   CREATED   | EXPIRATION |  NAMESPACE  |        POOL        |        DESCRIPTION        |
++--------------------------------------+--------+-------------+------------+-------------+--------------------+---------------------------+
+| 0040b5bd-deef-4bb7-a131-69acb8f291b4 | locked | 2 days ago  | in 4 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL version 3 |
+| 9596f88d-0681-4e8d-a4b9-5c47b35ab4d6 | locked | 4 days ago  | in 2 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL version 2 |
+| ffaa1e86-3a00-4c8a-81e0-862aee201331 | locked | 10 days ago | in 2 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL           |
++--------------------------------------+--------+-------------+------------+-------------+--------------------+---------------------------+
+ 
+
+	sheepctl lock extend 0040b5bd-deef-4bb7-a131-69acb8f291b4 -t 5d -n Tanzu-Sales 
+
+
+
 26) Cert Manager
-	Log onto guest cluster step 18
+	Log onto guest cluster 
+	export KUBECONFIG=''
+	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace1000 --tanzu-kubernetes-cluster-name orfcluster1 --insecure-skip-tls-verify
+	#
+	# OKIXCqns1h_8-kVi
+
 	alias k=kubectl
 	#
 	kubectl config get-contexts
@@ -378,13 +457,13 @@ EOFEOF
 
 
 	kubectl create namespace cert-manager # in my case the namespace was there but noting in it
+	#
 	tanzu plugin install package
-	tanzu package install cert-manager -p cert-manager.tanzu.vmware.com -n cert-manager -v 1.7.2+vmware.3-tkg.3 
+	yes
+	yes
+
 	#
-	# if there is any error in this step, you might need to install package repo 
-	# first https://techdocs.broadcom.com/us/en/vmware-tanzu/cli/tanzu-packages/latest/tnz-packages/prep.html#:~:text=Add%20the%20Package%20Repository%20to%20the%20Cluster
-	#
-	# yes I have error in above step...
+	# make sure you have a tanzu repo !!!
 	#
 	tanzu package repository list -A
 	#
@@ -394,7 +473,7 @@ EOFEOF
 	# make sure you can nslookup projects.registry.vmware.com and it resolves
 	# if not then go back to DNS setup step
 	#
-	cd build
+	cd /home/kubo/orf/build
 	./imgpkg tag list -i projects.registry.vmware.com/tkg/packages/standard/repo
 	#
 	# Create a repo file (Add the Package Repository to the Cluster)
@@ -422,10 +501,10 @@ EOF
 	#
 	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace1000 --tanzu-kubernetes-cluster-name orfcluster1 --insecure-skip-tls-verify
 	#
-	# SBFJWvHc.z-8kd0r
+	# OKIXCqns1h_8-kVi
 
 	# Apply the repo info
-	kubectl apply -f packagerepo.yaml
+	kubectl apply -f /home/kubo/orf/packagerepo1.yaml
 
 	#check if there is a repo and it is STATUS: Reconcile succeeded 
 	tanzu package repository list -A
@@ -439,6 +518,13 @@ EOF
 	#
 	# Try to install cert-manager
 	#
+	kubectl label ns cert-manager --overwrite=true pod-security.kubernetes.io/enforce=privileged
+
+	#
+	# Option D Test - not 100% working Option B got cert-manager working and Option A got CAinjector and web hook working 
+	#
+	kubectl label ns cert-manager --overwrite=true pod-security.kubernetes.io/enforce=privileged
+
 	tanzu package install cert-manager -p cert-manager.tanzu.vmware.com -n cert-manager -v 1.7.2+vmware.3-tkg.3
 	
 	tanzu package installed list -n cert-manager
@@ -695,6 +781,27 @@ EOF
 	# Use public cert manager from https://cert-manager.io/docs/installation/#default-static-install
 
 
+Option (D) (Thomas) 
+tanzu package repository add tanzu-standard --url harbor.mbentley.net/tkg/packages/standard/repo --namespace tkg-system
+
+## to List the versions of Cert-Manager Available
+tanzu package available list cert-manager.tanzu.vmware.com -A
+
+##Command to install the cert-manager
+kubectl create ns cert-manager
+kubectl label ns cert-manager --overwrite=true pod-security.kubernetes.io/enforce=privileged
+
+##Sample Command
+tanzu package install cert-manager --package cert-manager.tanzu.vmware.com --namespace cert-manager --version 1.7.2+vmware.3-tkg.3
+
+tanzu package installed list -n cert-manager
+
+NAME         PACKAGE-NAME                   PACKAGE-VERSION STATUS
+cert-manager cert-manager.tanzu.vmware.com  1.7.2+vmware.3-tkg.3 Reconcile succeeded
+
+k get all -n cert-manager
+
+
 
 27) Storage class update
 
@@ -883,7 +990,7 @@ EOF
 	export OS=$(uname | tr '[:upper:]' '[:lower:]')
 	export ARCH=$(if [[ $(uname -m) = "x86_64" ]]; then  echo "amd64"; else echo "arm64"; fi)
 	export ARTIFACTORY_USER="og010490" 
-	export ARTIFACTORY_API_TOKEN="cmVmdGtuOjAxOjE3NjkxMDY0MzA6c2E2M2dtR2ZyQ2JnMXBxxxxxxxxxxxxxxxxxxx" 
+	export ARTIFACTORY_API_TOKEN="cmVmdGtuOjAxOjE3NjkxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxFnNW9ZckpzWmg1" 
 	export DOCKER_REGISTRY="tis-tanzuhub-sm-docker-dev-local.usw1.packages.broadcom.com"
 
 
@@ -901,7 +1008,7 @@ EOF
 	alias k=kubectl
 
 	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
-	# SBFJWvHc.z-8kd0r
+	# OKIXCqns1h_8-kVi
 
 	#
 	# orfcluster1 kubeconfig
@@ -910,17 +1017,13 @@ EOF
 	kubectl get secret orfcluster1-kubeconfig -n namespace1000 -o json | jq -r '.data["value"] | @base64d' > orfwrk-kc 
 	export KUBECONFIG=orfwrk-kc
 
-	kubectl config get-contexts
-	#
-	# CURRENT   NAME                            CLUSTER       AUTHINFO            NAMESPACE
-	# *         orfcluster1-admin@orfcluster1   orfcluster1   orfcluster1-admin   
+
+	echo $KUBECONFIG
+
+	#orfwrk-kc
 
 
 	cd /bigdisk/tanzu-installer
-	#
-	# save off the original config file
-	#
-	cp config.yaml /home/kubo/orf/config.yaml.orig
 	
 
 	#
@@ -1100,23 +1203,27 @@ internal:
   excludedComponents:
 EOF
 
+	#
+	# save off the original config file
+	#
+	cp config.yaml /home/kubo/orf/config.yaml.orig
 
 
 
-29) Fixes this error (2025-01-22T21:01:57Z [x] Missing tools for installation:  velero)
-
-cd /bigdisk/tanzu-installer/additional-resources/binaries/linux/amd64
-​​sudo cp crashd /usr/local/bin/
-sudo cp imgpkg /usr/local/bin/
-sudo cp kctrl /usr/local/bin/
-sudo cp kapp /usr/local/bin/
-sudo cp tanzu /usr/local/bin/
-sudo cp kbld /usr/local/bin/
-sudo cp velero /usr/local/bin/
 
 
 
 30) Verify TP-SM install
+
+
+	#
+	# for good measure log into guest cluster
+	#
+	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace1000 --tanzu-kubernetes-cluster-name orfcluster1 --insecure-skip-tls-verify
+	#
+	# OKIXCqns1h_8-kVi
+	kubectl config get-contexts
+
 	cd /home/kubo/orf
 
 	/bigdisk/tanzu-installer/cli_bundle/linux/amd64/tanzu-sm-installer verify -f /home/kubo/orf/config.yaml -u "${ARTIFACTORY_USER}:${ARTIFACTORY_API_TOKEN}" -r ${DOCKER_REGISTRY}/hub-self-managed/${TANZU_SM_VERSION}/repo --install-version ${TANZU_SM_VERSION} --kubeconfig ${KUBECONFIG}
@@ -1129,6 +1236,9 @@ sudo cp velero /usr/local/bin/
 	/bigdisk/tanzu-installer/cli_bundle/linux/amd64/tanzu-sm-installer install -f /home/kubo/orf/config.yaml -u "${ARTIFACTORY_USER}:${ARTIFACTORY_API_TOKEN}" -r ${DOCKER_REGISTRY}/hub-self-managed/${TANZU_SM_VERSION}/repo --install-version ${TANZU_SM_VERSION} --kubeconfig ${KUBECONFIG}
 
 	# enter foundation
+
+	# try -y next time 
+
 
 
 
@@ -1153,37 +1263,20 @@ sudo cp velero /usr/local/bin/
 	# 
 	#  Useful Error Message:    kapp: Error: Timed out waiting after 5m0s for resources:
 	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ccc-rules-service (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/daedalus (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ensemble-application-metadata (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ensemble-provider-service (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ensemble-ucp (apps/v1) namespace: tanzusm:
 	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ensemble-findings (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/idem-service-event-ingestion (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/k8s-ingestion-service-lemans (apps/v1) namespace: tanzusm:
 	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/kafka-topic-controller (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/lemans-gateway-hsm-cluster-1 (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/lemans-resources (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: Timed out waiting after 15m0s for resources:
 	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/postgres-endpoint-controller (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/raas (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/reloader-reloader (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile packageinstall/vss-inventory-service (packaging.carvel.dev/v1alpha1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/tas-ingestion-service-lemans (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile packageinstall/tmc-local-stack (packaging.carvel.dev/v1alpha1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: Timed out waiting after 15m0s for resources:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/account-manager-server (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ucp-kine (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/vcf-ingestion-service (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/cloud-accounts-service (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/findings (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ingestion (apps/v1) namespace: tanzusm:
-	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/inventory (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile packageinstall/guardrails-helm (packaging.carvel.dev/v1alpha1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile packageinstall/kafka-topic-controller (packaging.carvel.dev/v1alpha1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/cluster-service-server (apps/v1) namespace: tanzusm:
+	#  Useful Error Message:    kapp: Error: waiting on reconcile deployment/ucp-envoy (apps/v1) namespace: tanzusm:
 
 	# Lets look at the PODs
 
 	kubectl get pods -A | grep -v Running
 
 	kubectl get pods -A | grep -v Running | tail -n+2 | awk '{ print "kubectl describe pod -n " $1 " " $2 " | grep Warning >> /tmp/e3" }' > /tmp/e2
-
 	chmod +x /tmp/e2
 	rm /tmp/e3
 	/tmp/e2
@@ -1194,7 +1287,8 @@ sudo cp velero /usr/local/bin/
 	# 1 node(s) had untolerated taint {node-role.kubernetes.io/control-plane: }, 
 	# 2 Insufficient memory, 5 Insufficient cpu. preemption: 0/6 nodes are available: 
 	# 1 Preemption is not helpful for scheduling, 5 No preemption victims found for incoming pod.
-	
+	# Installation failed with error: pacakges are in unstable state.
+
 	# And when you make the cluster bigger... the following results
 
 	# kubo@UGN5JmN7F92hA:~/orf$ kubectl get pods -A | grep -v Running  | wc -l
@@ -1229,18 +1323,20 @@ sudo cp velero /usr/local/bin/
 	# Delete takes a long time... !!!!
 
 
+	# Installation failed with error: pacakges are in unstable state.
+
 
 33) Get external IP
 
 	kubectl get svc -A | grep Load
 
-	# tanzusm             contour-envoy                                      LoadBalancer   10.106.213.251   192.168.0.6   80:32081/TCP,443:30293/TCP                              16h
+	# tanzusm             contour-envoy                                      LoadBalancer   10.106.213.251   192.168.0.7   80:32081/TCP,443:30293/TCP                              16h
 
-34) Update DNS somehow (not how yet...)
+34) Update DNS somehow (not how yet...tanzu.platform.io = 192.168.0.7)
 
-	tanzu.platform.io = 192.168.0.6
+	Step 1) sudo echo "192.168.0.7 tanzu.platform.io" >> /etc/hosts
 
-
+	
 
 
 
