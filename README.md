@@ -1448,6 +1448,33 @@ http://127.0.0.1:36317/callback?code=7UUVJ-hDCTlT__Gfz-T2mG0Yw2odb5kq&state=c132
 	# export TANZU_API_TOKEN=Lrfvcpf0Jn3C_e_0Ys4aVltoI42B4WOl
 	# tanzu login --endpoint https://tanzu.platform.io --insecure-skip-tls-verify
 
+36) Tanzu comand expansion
+
+	tanzu config eula accept
+	tanzu plugin install app --group vmware-tanzucli/essentials
+	tanzu plugin install --group vmware-tanzu/app-developer
+	tanzu plugin install --group vmware-tanzu/platform-engineer
+	tanzu plugin install --group vmware-tmc/default
+	tanzu plugin install --group vmware-vsphere/default 
+	tanzu plugin install --group vmware-tkg/default
+	tanzu plugin install --group vmware-tap/default 
+
+	#
+	# this should work now
+	#
+	tanzu project create firstproject
+	Create firstproject project in Tanzu Platform Self Managed org? [yN]: y
+	x Failed to create project firstproject in Tanzu Platform Self Managed org. Error: input: authMutation.projectMutation.upsertProject INTERNAL
+
+
+	tanzu context current
+ 	# Name:            tpsm-910fbd64
+ 	# Type:            tanzu
+ 	# Organization:    Tanzu Platform Self Managed (b91c7be4-0489-49d7-8a8d-7c34af480ef8)
+ 	# Project:         none set
+ 	# Kube Config:     /home/kubo/.config/tanzu/kube/config
+ 	# Kube Context:    tanzu-cli-tpsm-910fbd64
+
 
 
 
