@@ -1425,23 +1425,28 @@ EOF
 [!] failed to open the browser for login:exec: "xdg-open,x-www-browser,www-browser": executable file not found in $PATH
 Log in by visiting this link:
 
-    https://tanzu.platform.io/auth/oauth/authorize?client_id=tp_cli_app&code_challenge=FFq2dWgj2w5TI7F9NTYigt9Tm8CA1-qMb4tTFqfYCcU&code_challenge_method=S256&redirect_uri=http%3A%2F%2F127.0.0.1%3A40619%2Fcallback&response_type=code&state=591b7676074a23e2f241b0e10d79fcc8
+    https://tanzu.platform.io/auth/oauth/authorize?client_id=tp_cli_app&code_challenge=E9_amX3o406Qq_fAUXh-p8FLNuPFIeWjVHpfJbv3q80&code_challenge_method=S256&redirect_uri=http%3A%2F%2F127.0.0.1%3A43471%2Fcallback&response_type=code&state=e505aab75e7d91bfdec223a3a9ed9616
 
     Optionally, paste your authorization code: 
 
-	# Due to the proxy and localhost this seems not to work very well 
 
-	
-	#potentially just snagged the code...from the login GUI
-	https://tanzu.platform.io/hub/oauth2/callback?code=GorEVOOg4UuVzrLhpCadFksU3tNFkoEy&state=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJsYXN0VmlzaXRlZFVybCI6IiIsInJmcCI6InZVQkRMNXBzZUw0eWlOaUFCcXRXQnY5RFNteUhFZ05aIiwiaWF0IjoxNzM4MjQ1MDU2LCJleHAiOjE3MzgyNDUzNTYsImlzcyI6InRhbnp1LnBsYXRmb3JtLmlvIiwiYXVkIjoidHBfYXBwIiwiYXMiOiJodHRwczovL3Rhbnp1LnBsYXRmb3JtLmlvIn0.
-
-	export TANZU_API_TOKEN=GorEVOOg4UuVzrLhpCadFksU3tNFkoEy&state
-	tanzu login --endpoint https://tanzu.platform.io --insecure-skip-tls-verify
-
-	# no grabbed wrong token
+	#
+	# When pasting the above URL it will come back with what looks like an error, but the token is in the resulting URL
+	# Paste that token into the CLI question and you will get logged on
 
 
+http://127.0.0.1:36317/callback?code=7UUVJ-hDCTlT__Gfz-T2mG0Yw2odb5kq&state=c1321a1f9844cea73d0be582e5947a60
 
+    Optionally, paste your authorization code: Lrfvcpf0Jn3C_e_0Ys4aVltoI42B4WOl
+
+
+[ok] Successfully logged in to 'https://tanzu.platform.io' and created a tanzu context
+
+
+	# future commands to explore 
+	# tanzu api-token create
+	# export TANZU_API_TOKEN=Lrfvcpf0Jn3C_e_0Ys4aVltoI42B4WOl
+	# tanzu login --endpoint https://tanzu.platform.io --insecure-skip-tls-verify
 
 
 
