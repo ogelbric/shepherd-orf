@@ -7,6 +7,7 @@ Shepherd / Sheepctl
 # Thomas Instructions: https://docs.google.com/document/d/13pdIArdZy5BWsnMIBTCi2vbAUYZ6YlfdCuFWanM3rFk/edit?tab=t.0
 # Official doc: https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-platform/10-0/tnz-platform/tp-sm-install-install-tp-sm.html
 # TPSM on GKE: https://docs.google.com/document/d/1l5bm3ox8AZjYaV5xIXqssBH80yxszvpdP1SFl2iYVKc/edit?pli=1&tab=t.0
+# Brian: https://github.com/BrianRagazzi/EPC-shepherd-tpsm/blob/main/tpsm-install.md
 #
 #
 # For all of this to work you need to be on VPN and on a FullVPN connection (my case LasVegas Full) 
@@ -78,17 +79,30 @@ Shepherd / Sheepctl
 	#
 	sheepctl target set -u https://epc-shepherd.lvn.broadcom.net -n Tanzu-Sales
 	sheepctl pool lock TKGs-Non-Airgapped -n Tanzu-Sales --lifetime 5d --description 'Used by EPC TSL version 4(Orf)'
+	sheepctl pool lock TKGs-Non-Airgapped -n Tanzu-Sales --lifetime 5d --description 'Used by Tim Leong TPCF Testing Version 1'
+	sheepctl pool lock TKGs-Non-Airgapped -n Tanzu-Sales --lifetime 5d --description 'Used by US West Bob Bauer Version 1'
+
+	#
+	# Update description
+	#
+	sheepctl lock update 0e450633-978c-4704-9432-f047731afbf5 --description 'US East/FSI (Chris Delashmutt)'
+
+
 	sheepctl lock list -n Tanzu-Sales
 
-+--------------------------------------+--------+----------------+------------+-------------+--------------------+--------------------------------+
-|                  ID                  | STATUS |    CREATED     | EXPIRATION |  NAMESPACE  |        POOL        |          DESCRIPTION           |
-+--------------------------------------+--------+----------------+------------+-------------+--------------------+--------------------------------+
-| a4684e93-2c82-4ac7-9fd7-7e3471f3fdea | locked | 13 minutes ago | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL version 4(Orf) |
-| 0e450633-978c-4704-9432-f047731afbf5 | locked | 21 hours ago   | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by US East                |
-| 9596f88d-0681-4e8d-a4b9-5c47b35ab4d6 | locked | 5 days ago     | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | Used by EPC TSL version 2      |
-+--------------------------------------+--------+----------------+------------+-------------+--------------------+--------------------------------+
++--------------------------------------+--------+-------------+------------+-------------+--------------------+------------------------------+
+|                  ID                  | STATUS |   CREATED   | EXPIRATION |  NAMESPACE  |        POOL        |         DESCRIPTION          |
++--------------------------------------+--------+-------------+------------+-------------+--------------------+------------------------------+
+| 4fdbbc09-673e-44c3-880f-9525b43451db | locked | an hour ago | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | US West/Partners (Bob Bauer) |
+| 2a54449f-6430-4f06-8b2f-87e52548c43e | locked | 5 hours ago | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | EMEA (Timo Salm)             |
+| add59345-14ed-4a0c-8e4f-043008b64914 | locked | 5 hours ago | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | Spare (Tim Leong)            |
+| 582d8c31-75d4-4d0d-87c3-bc2950688235 | locked | 3 days ago  | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | PVE (Bridget Arthur)         |
+| 0e450633-978c-4704-9432-f047731afbf5 | locked | 5 days ago  | in 5 days  | Tanzu-Sales | TKGs-Non-Airgapped | US East/FSI (Orf Gelbrich)   |
++--------------------------------------+--------+-------------+------------+-------------+--------------------+------------------------------+
 
-	sheepctl lock get -n Tanzu-Sales {lock guid} -j -o lockfile.json
+	export LOCKID="0e450633-978c-4704-9432-f047731afbf5"
+
+	sheepctl lock get -n Tanzu-Sales ${LOCID} -j -o lockfile.json
 
 
 
@@ -99,25 +113,31 @@ Shepherd / Sheepctl
 
 9) Get the lock information (json file)
 	sheepctl lock list -n Tanzu-Sales 
-	sheepctl lock get -n Tanzu-Sales a4684e93-2c82-4ac7-9fd7-7e3471f3fdea
+
+	sheepctl lock get -n Tanzu-Sales ${LOCKID}
 
 10) Get vCenter info
-	sheepctl lock get -n Tanzu-Sales a4684e93-2c82-4ac7-9fd7-7e3471f3fdea  > /tmp/a 2>&1 ; grep -w5  administrator /tmp/a | tail -9
+	sheepctl lock get -n Tanzu-Sales ${LOCKID} > /tmp/a 2>&1 ; grep -w5  administrator /tmp/a | tail -9
+
+            "pod": "lvn-cm2w10-vc1",
+            "extraData": {},
+            "givenName": "vc.0",
             "vimUsername": "administrator@vsphere.local",
-            "vimPassword": "FDFC.yX30wVqme_x",
+            "vimPassword": "BYVS_+M6nEe4tyea",
             "vimPort": 443,
             "deploymentType": "embedded",
             "osFamily": "linux",
-            "systemPNID": "lvn-dvm-10-192-19-242.dvm.lvn.broadcom.net"
+            "systemPNID": "lvn-dvm-10-192-35-74.dvm.lvn.broadcom.net"
+
 
 11) Jumper Info
-	sheepctl lock get -n Tanzu-Sales a4684e93-2c82-4ac7-9fd7-7e3471f3fdea  > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep hostname | head -1
-        "hostname": "10.192.22.205",
-	sheepctl lock get -n Tanzu-Sales a4684e93-2c82-4ac7-9fd7-7e3471f3fdea  > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep password | tail -1
+	sheepctl lock get -n Tanzu-Sales ${LOCKID}  > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep hostname | head -1
+        "hostname": "10.192.33.11",
+	sheepctl lock get -n Tanzu-Sales ${LOCKID} > /tmp/a 2>&1 ; grep -w5  kubo /tmp/a | grep password | tail -1
         "password": "Ponies!23"
 
 12) ssh to jumper
-	ssh kubo@10.192.22.205 #Ponies!23
+	ssh kubo@10.192.33.11 #Ponies!23
 	mkdir orf
 	cd orf
 
@@ -130,6 +150,20 @@ Shepherd / Sheepctl
 	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
 	# FDFC.yX30wVqme_x
 	
+13.5) The DNS for the workload network managed by the Supervisor is set to 192.19.189.10. We need to change it to use our dnsmasq server on the jumpbox at 192.168.1.1.
+
+First, on the machine you ran shepctl on, grab the the hostname and password to access vCenter:
+jq '.outputs.vm["vc.0"]' ${ENVNAME}-access.json
+Go the the hostname (ip, actually) in your browser and login to vCenter as "administrator@vsphere.local" with the password you got from the previous command.
+Go to Workload Management via the hamburger menu on the top left of the browser page.
+Click on the "Supervisors" tab under the "Workload Management" heading in the top, middle of the page.
+Click on the "tkgs-cls" Supervisor to open its details.
+Click on the "Configure" tab in the resulting details page.
+In the tree-view near the "Configure" tab you just clicked, under the "Supervisor" section of the tree, click "Network"
+In the "Network" page, there are a few expandable sections. Click the section called "Workload Network" to expand it
+Next to the DNS server, you will see the value of "192.19.189.10". Click the "Edit" link next to that DNS value. Update the DNS server to be 192.168.1.1, and click the "Save" button.
+
+
 
 14) Re-write cluster yaml with new storage class name (yaml is in next step)
 	#
@@ -154,16 +188,25 @@ Shepherd / Sheepctl
 	#Fix version to max: v1.29.4---vmware.3-fips.1-tkg.1           v1.29.4+vmware.3-fips.1-tkg.1  
 	#Fix namespace my case namespace1000
 	#
+	# 
+	export A="FDFC.yX30wVqme_x"
+	export B="namespace1000"
+	export KUBECTL_VSPHERE_PASSWORD=${A}
+	echo "export KUBECTL_VSPHERE_PASSWORD=${A}" > /home/kubo/orf/run.sh
+	export NS=${B}
+	echo "export NS=${B}" >> /home/kubo/orf/run.sh
+
 	kubectl vsphere login --server=192.168.0.2 --vsphere-username administrator@vsphere.local --insecure-skip-tls-verify
 	# FDFC.yX30wVqme_x
-	kubectl config use-context namespace1000
+
+	kubectl config use-context ${NS}
 	
 	kubectl get sc
-	NAME                   PROVISIONER              RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
-	tkgs-k8s-obj-policy    csi.vsphere.vmware.com   Delete          Immediate           true                   21h
+	# NAME                   PROVISIONER              RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+	# tkgs-k8s-obj-policy    csi.vsphere.vmware.com   Delete          Immediate           true                   21h
 
 	alias k=kubectl
-	k get virtualmachineclasses
+	kubectl get virtualmachineclasses
 
 NAME                  CPU   MEMORY
 best-effort-2xlarge   8     64Gi
@@ -187,18 +230,24 @@ tpsm                  8     32Gi
 
 15) Cluster yaml that worked: 
 
+	#
+	# Option A
+	#
+
 cat <<'EOF' > /home/kubo/orf/orfcluster.yaml
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: orfcluster1
-  namespace: namespace2000
+  namespace: NSorf
 spec:
   clusterNetwork:
     services:
-      cidrBlocks: ["10.96.0.0/12"]
+      # cidrBlocks: ["10.96.0.0/12"]
+      cidrBlocks: ["192.168.0.0/17"]
     pods:
-      cidrBlocks: ["192.168.16.0/20"]
+      # cidrBlocks: ["192.168.16.0/20"]
+      cidrBlocks: ["192.168.128.0/17"]
     serviceDomain: "cluster.local"
   topology:
     class: tanzukubernetescluster
@@ -209,7 +258,7 @@ spec:
       machineDeployments:
         - class: node-pool
           name: node-pool-1
-          replicas: 13 # 10 # 7 # 3 # 13 # in doc this is 14 - testing with 13 (1-28-2025)
+          replicas: 13 # 7 # 3 # 13 # in doc this is 14 - testing with 13 (1-28-2025) - works
     variables:
       - name:  ntp
         value: "ntp.broadcom.net"
@@ -237,14 +286,86 @@ EOF
 	#
 	# Create cluster (this will take some time ~30-40min / Watch in vCenter)
 	#
-	kubectl apply -f orfcluster.yaml
+	cat orfcluster.yaml | sed "s/NSorf/${NS}/g" > orfcluster1.yaml
+	kubectl apply -f orfcluster1.yaml
+
+
+	#
+	# Option B (bigger filesystems less workers)
+	#	
+
+cat <<'EOF' > /home/kubo/orf/orfcluster.yaml
+apiVersion: run.tanzu.vmware.com/v1alpha3
+kind: TanzuKubernetesCluster
+metadata:
+  name: orfcluster1
+  namespace: NSorf
+spec:
+  topology:
+    controlPlane:
+      replicas: 1
+      vmClass: tpsm
+      storageClass: tkgs-k8s-obj-policy
+      tkr:
+        reference:
+          name: v1.28.7---vmware.1-fips.1-tkg.1
+      volumes:
+        - name: kubelet
+          mountPath: /var/lib/kubelet
+          capacity:
+            storage: 80Gi
+        - name: containerd
+          mountPath: /var/lib/containerd
+          capacity:
+            storage: 40Gi
+    nodePools:
+      - replicas: 6
+        name: worker-np
+        vmClass: tpsm
+        storageClass: tkgs-k8s-obj-policy
+        tkr:
+          reference:
+            name: v1.28.7---vmware.1-fips.1-tkg.1
+        volumes:
+          - name: kubelet
+            mountPath: /var/lib/kubelet
+            capacity:
+              storage: 80Gi
+          - name: containerd
+            mountPath: /var/lib/containerd
+            capacity:
+              storage: 40Gi
+  settings:
+    network:
+      cni:
+        name: antrea
+      services:
+        cidrBlocks: ["192.168.0.0/17"]
+      pods:
+        cidrBlocks: ["192.168.128.0/17"]
+    storage:
+      defaultClass: tkgs-k8s-obj-policy
+      classes: ["tkgs-k8s-obj-policy"]
+EOF
+
+	#
+	# Create cluster (this will take some time ~30-40min / Watch in vCenter)
+	#
+	cat orfcluster.yaml | sed "s/NSorf/${NS}/g" > orfcluster1.yaml
+	kubectl apply -f orfcluster1.yaml
+
+
+
+
+
 
 
 18) Log onto guest cluster 
 	#
 	# orfcluster1
 	#
-	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace2000 --tanzu-kubernetes-cluster-name orfcluster1 --insecure-skip-tls-verify
+	source ./run.sh
+	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace ${NS} --tanzu-kubernetes-cluster-name orfcluster1 --insecure-skip-tls-verify
 	#
 	# FDFC.yX30wVqme_x
 
@@ -397,11 +518,11 @@ EOFEOF
 	# FDFC.yX30wVqme_x
 
 	kubectl config use-context namespace1000
-	kubectl get secret -n namespace2000
+	kubectl get secret -n namespace1000
 	#
 	# orfcluster kubeconfig
 	#
-	kubectl get secret orfcluster1-kubeconfig -n namespace2000 -o json | jq -r '.data["value"] | @base64d' > orfwrk-kc 
+	kubectl get secret orfcluster1-kubeconfig -n namespace1000 -o json | jq -r '.data["value"] | @base64d' > orfwrk-kc 
 	export KUBECONFIG=orfwrk-kc
 	#
 	#Carvel tools
@@ -458,7 +579,7 @@ EOFEOF
 26) Cert Manager
 	Log onto guest cluster 
 	export KUBECONFIG=''
-	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace2000 --tanzu-kubernetes-cluster-name orfcluster1 --insecure-skip-tls-verify
+	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace1000 --tanzu-kubernetes-cluster-name orfcluster1 --insecure-skip-tls-verify
 	#
 	# FDFC.yX30wVqme_x
 
@@ -479,11 +600,11 @@ CURRENT   NAME                   CLUSTER       AUTHINFO                         
           testns                 192.168.0.2   wcp:192.168.0.2:administrator@vsphere.local   testns
 
 
-	kubectl create namespace cert-manager # in my case the namespace was there but noting in it
+	#kubectl create namespace cert-manager # in my case the namespace was there but noting in it
 	#
 	tanzu plugin install package
-	yes
-	yes
+	#yes
+	#yes
 
 	#
 	# make sure you have a tanzu repo !!!
@@ -555,6 +676,9 @@ EOF
 
 	kubectl -n cert-manager get all
 
+	#
+	# tanzu package installed delete cert-manager --namespace cert-manager
+	#
 	#
 	# looks like cert manager is in reconcile status...
 	# events reveal that there is an issue
@@ -657,8 +781,51 @@ EOF
 	cert-manager-cainjector-6cd4cd948d-qf7cs   1/1     Running   0          32m
 	cert-manager-webhook-569f75495-5hwsq       1/1     Running   0          31m
 
-
+	#
+	# Option (x). <----- This works !!!
+	#
 	#Or you can use public cert manager from https://cert-manager.io/docs/installation/#default-static-install
+	#
+	#kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.yaml
+	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.3/cert-manager.yaml
+ 	# not sure where this version is --version 1.7.2+vmware.3-tkg.3
+	
+	kubectl  get deployment -n cert-manager cert-manager
+NAME           READY   UP-TO-DATE   AVAILABLE   AGE
+cert-manager   1/1     1            1           34s
+
+	kubectl get pods -n cert-manager
+NAME                                       READY   STATUS    RESTARTS   AGE
+cert-manager-6b799c4d99-7jr67              1/1     Running   0          81s
+cert-manager-cainjector-667877c44d-phwbz   1/1     Running   0          81s
+cert-manager-webhook-68c5b8b869-pt7ms      1/1     Running   0          81s
+
+	kubectl get all -n cert-manager
+
+NAME                                           READY   STATUS    RESTARTS   AGE
+pod/cert-manager-6b799c4d99-7jr67              1/1     Running   0          2m11s
+pod/cert-manager-cainjector-667877c44d-phwbz   1/1     Running   0          2m11s
+pod/cert-manager-webhook-68c5b8b869-pt7ms      1/1     Running   0          2m11s
+
+NAME                              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)            AGE
+service/cert-manager              ClusterIP   10.97.0.163     <none>        9402/TCP           2m12s
+service/cert-manager-cainjector   ClusterIP   10.108.92.35    <none>        9402/TCP           2m12s
+service/cert-manager-webhook      ClusterIP   10.101.58.216   <none>        443/TCP,9402/TCP   2m12s
+
+NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/cert-manager              1/1     1            1           2m11s
+deployment.apps/cert-manager-cainjector   1/1     1            1           2m12s
+deployment.apps/cert-manager-webhook      1/1     1            1           2m11s
+
+NAME                                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/cert-manager-6b799c4d99              1         1         1       2m11s
+replicaset.apps/cert-manager-cainjector-667877c44d   1         1         1       2m11s
+replicaset.apps/cert-manager-webhook-68c5b8b869      1         1         1       2m11s
+
+
+
+
+
 
 	#
 	# Option (B)
@@ -836,6 +1003,26 @@ EOF
 
 	kubectl get all -n cert-manager
 
+NAME                                           READY   STATUS    RESTARTS   AGE
+pod/cert-manager-6b799c4d99-2n84c              1/1     Running   0          93s
+pod/cert-manager-cainjector-667877c44d-lps8g   1/1     Running   0          93s
+pod/cert-manager-webhook-68c5b8b869-l7kmp      1/1     Running   0          93s
+
+NAME                              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)            AGE
+service/cert-manager              ClusterIP   10.109.154.47   <none>        9402/TCP           94s
+service/cert-manager-cainjector   ClusterIP   10.105.93.46    <none>        9402/TCP           94s
+service/cert-manager-webhook      ClusterIP   10.110.73.209   <none>        443/TCP,9402/TCP   94s
+
+NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/cert-manager              1/1     1            1           94s
+deployment.apps/cert-manager-cainjector   1/1     1            1           94s
+deployment.apps/cert-manager-webhook      1/1     1            1           94s
+
+NAME                                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/cert-manager-6b799c4d99              1         1         1       94s
+replicaset.apps/cert-manager-cainjector-667877c44d   1         1         1       94s
+replicaset.apps/cert-manager-webhook-68c5b8b869      1         1         1       94s
+kubo@ZrzkZkCuuZQVw:~/orf$ 
 
 	
 
@@ -1026,7 +1213,7 @@ EOF
 	export OS=$(uname | tr '[:upper:]' '[:lower:]')
 	export ARCH=$(if [[ $(uname -m) = "x86_64" ]]; then  echo "amd64"; else echo "arm64"; fi)
 	export ARTIFACTORY_USER="og010490" 
-	export ARTIFACTORY_API_TOKEN="cmVmdGtuOjAxOjE3NjxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxQ2JnMXBIdWFnNW9ZckpzWmg1" 
+	export ARTIFACTORY_API_TOKEN="cmVmdGtuOjAxOjE3NjkxMDY0MzA6c2E2M2dtR2ZyQ2JnMXBIdWFnNW9ZckpzWmg1" 
 	export DOCKER_REGISTRY="tis-tanzuhub-sm-docker-dev-local.usw1.packages.broadcom.com"
 
 
@@ -1253,7 +1440,7 @@ EOF
 	#
 	# for good measure log into guest cluster
 	#
-	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace2000 --tanzu-kubernetes-cluster-name orfcluster1 --insecure-skip-tls-verify
+	kubectl vsphere login --server 192.168.0.2 --vsphere-username administrator@vsphere.local --tanzu-kubernetes-cluster-namespace namespace1000 --tanzu-kubernetes-cluster-name orfcluster1 --insecure-skip-tls-verify
 	#
 	# FDFC.yX30wVqme_x
 	kubectl config get-contexts
@@ -1267,6 +1454,7 @@ EOF
 
 
 31) Install TP-SM 
+
 	/bigdisk/tanzu-installer/cli_bundle/linux/amd64/tanzu-sm-installer install -f /home/kubo/orf/config.yaml -u "${ARTIFACTORY_USER}:${ARTIFACTORY_API_TOKEN}" -r ${DOCKER_REGISTRY}/hub-self-managed/${TANZU_SM_VERSION}/repo --install-version ${TANZU_SM_VERSION} --kubeconfig ${KUBECONFIG}
 
 	# enter foundation
@@ -1308,9 +1496,7 @@ EOF
 
 	# Lets look at the PODs
 
-	kubectl get pods -A | grep -v Running
-
-	kubectl get pods -A | grep -v Running | tail -n+2 | awk '{ print "kubectl describe pod -n " $1 " " $2 " | grep Warning >> /tmp/e3" }' > /tmp/e2
+	kubectl get pods -A | grep -v Running| tail -n+2 | awk '{ print "kubectl describe pod -n " $1 " " $2 " | grep Warning >> /tmp/e3" }' > /tmp/e2
 	chmod +x /tmp/e2
 	rm /tmp/e3
 	/tmp/e2
@@ -1334,6 +1520,17 @@ EOF
 	# kubo@UGN5JmN7F92hA:~/orf$ kubectl get pods -A | grep -v Running  | wc -l
 	# 170
 
+	#
+	# "jiggle" lots of pods
+	#
+	kubectl get pods -A | grep -v Running | tail -n+2 | awk '{ print "kubectl delete pod -n " $1 " " $2  }'
+	kubectl get pods -A | grep -v Running 
+
+
+	#
+	# SM deployment investigation
+	#
+	k describe packageinstall -n tanzusm             sm  | grep Error
 
 
 	#
@@ -1363,16 +1560,17 @@ EOF
 
 	kubectl get svc -A | grep Load
 
-	# tanzusm             contour-envoy                                      LoadBalancer   10.97.146.156    192.168.0.4   80:31901/TCP,443:31904/TCP 
+	# tanzusm             contour-envoy                                      LoadBalancer   10.97.146.156    192.168.0.6   80:31901/TCP,443:31904/TCP 
 
 34) Update DNS  (tanzu.platform.io = 192.168.0.4)
 
 	#1) Add to host file on jump box 
-	sudo vi /etc/hosts # and add  "192.168.0.4 tanzu.platform.io" 
+	sudo vi /etc/hosts # and add  "192.168.0.6 tanzu.platform.io" 
+	#sudo echo "192.168.0.6 tanzu.platform.io" >> /etc/hosts
 
 	#2) Update local DNS mask
 	sudo vi /etc/dnsmasq.d/vlan-dhcp-dns.conf
-	address=/tanzu.platform.io/192.168.0.4
+	address=/tanzu.platform.io/192.168.0.6
 	sudo systemctl restart dnsmasq
 
 	
@@ -1381,7 +1579,7 @@ EOF
 	#Address:	127.0.0.1#53
 
 	#Name:	tanzu.platform.io
-	#Address: 192.168.0.4
+	#Address: 192.168.0.6
 
 
 	#
@@ -1447,6 +1645,7 @@ http://127.0.0.1:36317/callback?code=7UUVJ-hDCTlT__Gfz-T2mG0Yw2odb5kq&state=c132
 	# tanzu api-token create
 	# export TANZU_API_TOKEN=Lrfvcpf0Jn3C_e_0Ys4aVltoI42B4WOl
 	# tanzu login --endpoint https://tanzu.platform.io --insecure-skip-tls-verify
+	# k logs -n tanzusm uaa-58c8fd5c6f-xpwld.  #UAA logs... 
 
 36) Tanzu comand expansion
 
