@@ -1178,7 +1178,7 @@ EOF
 	export OS=$(uname | tr '[:upper:]' '[:lower:]')
 	export ARCH=$(if [[ $(uname -m) = "x86_64" ]]; then  echo "amd64"; else echo "arm64"; fi)
 	export ARTIFACTORY_USER="og010490" 
-	export ARTIFACTORY_API_TOKEN="cmVmdGtuOjAxOjE3NjkxMDY0MzA6c2E2M2dtR2ZyQ2JnMXBIdWFnNW9ZckpzWmg1" 
+	export ARTIFACTORY_API_TOKEN="cmVmdGtuOjAxOjE3NjkxMDxxxxxxxxxxxxxxxxxxxxWFnNW9ZckpzWmg1" 
 	export DOCKER_REGISTRY="tis-tanzuhub-sm-docker-dev-local.usw1.packages.broadcom.com"
 
 
