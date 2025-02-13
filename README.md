@@ -1053,7 +1053,7 @@ metadata:
   labels:
     isSyncedFromSupervisor: "false"
   name: zk-storage-class
-  #name: zookeeper-storage-class 
+  #name: zookeeper-storage-class  #10.1 maybe
 parameters:
   svStorageClass: tkgs-k8s-obj-policy
 provisioner: csi.vsphere.vmware.com
@@ -1301,8 +1301,8 @@ login:
     admin:
       #Tanzu Platform Admin  Password, Random password will be generated if empty value provided
       #Note that this password cannot be changed later, its one time set ( both system generated and user provided one)
-      #password: "admin123"
-      temporaryPassword: "admin123"
+      password: "admin123"
+      #temporaryPassword: "admin123"  #10.1 maybe
       ##### --------------------------------*************************-----------------------------------------######
       ##### --------------------------------*************************-----------------------------------------######
       ##### ------ You can provide both oauth provider and ldap for the users to login into TP or any one ----######
