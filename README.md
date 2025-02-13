@@ -1053,6 +1053,7 @@ metadata:
   labels:
     isSyncedFromSupervisor: "false"
   name: zk-storage-class
+  #name: zookeeper-storage-class 
 parameters:
   svStorageClass: tkgs-k8s-obj-policy
 provisioner: csi.vsphere.vmware.com
