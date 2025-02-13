@@ -1301,7 +1301,8 @@ login:
     admin:
       #Tanzu Platform Admin  Password, Random password will be generated if empty value provided
       #Note that this password cannot be changed later, its one time set ( both system generated and user provided one)
-      password: "admin123"
+      #password: "admin123"
+      temporaryPassword: "admin123"
       ##### --------------------------------*************************-----------------------------------------######
       ##### --------------------------------*************************-----------------------------------------######
       ##### ------ You can provide both oauth provider and ldap for the users to login into TP or any one ----######
