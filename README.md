@@ -117,7 +117,7 @@ Shepherd / Sheepctl
 
 	export LOCKID="0e450633-978c-4704-9432-f047731afbf5"
 
-	sheepctl lock get -n Tanzu-Sales ${LOCID} -j -o lockfile.json
+	sheepctl lock get -n Tanzu-Sales ${LOCKID} -j -o lockfile.json
 
 
 
